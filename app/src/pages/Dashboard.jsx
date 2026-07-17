@@ -29,7 +29,7 @@ export default function Dashboard() {
     <div>
       <PetView />
       
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
         <button 
           className="btn" 
           onClick={handleFeed}
@@ -46,9 +46,9 @@ export default function Dashboard() {
         </button>
       </div>
 
-      <div style={{ marginTop: '2rem', borderTop: '2px dashed var(--window-border-light)', paddingTop: '1rem' }}>
-        <h3 style={{ fontFamily: 'var(--header-font)', fontSize: '0.8rem', marginBottom: '1rem' }}>Dress Up</h3>
-        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+      <div style={{ marginTop: '1rem', borderTop: '2px dashed var(--window-border-light)', paddingTop: '0.5rem' }}>
+        <h3 style={{ fontFamily: 'var(--header-font)', fontSize: '0.8rem', marginBottom: '0.5rem' }}>Dress Up</h3>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           {['base', 'partyhat', 'necklace'].map(item => {
             const isUnlocked = gameState.unlockedItems.includes(item);
             const isEquipped = gameState.equippedItem === item;
@@ -93,8 +93,8 @@ export default function Dashboard() {
           })}
         </div>
       </div>
-      <div style={{ marginTop: '2rem', borderTop: '2px dashed var(--window-border-light)', paddingTop: '1rem' }}>
-        <h3 style={{ fontFamily: 'var(--header-font)', fontSize: '0.8rem', marginBottom: '1rem' }}>Settings</h3>
+      <div style={{ marginTop: '1rem', borderTop: '2px dashed var(--window-border-light)', paddingTop: '0.5rem' }}>
+        <h3 style={{ fontFamily: 'var(--header-font)', fontSize: '0.8rem', marginBottom: '0.5rem' }}>Settings</h3>
         
         {/* Name Setting */}
         <div style={{ marginBottom: '1rem' }}>

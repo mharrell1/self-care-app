@@ -17,14 +17,14 @@ export default function PetView() {
         backgroundColor: '#fff',
         border: '3px solid var(--window-border-dark)',
         borderRadius: '10px',
-        padding: '1rem',
+        padding: '0.5rem',
         display: 'inline-block',
         boxShadow: 'inset 2px 2px 5px rgba(0,0,0,0.1)'
       }}>
         <img 
           src={getFrogImage()} 
           alt={gameState.petName} 
-          style={{ width: '250px', height: '250px', objectFit: 'contain' }}
+          style={{ width: '150px', height: '150px', objectFit: 'contain' }}
         />
       </div>
       <div style={{ marginTop: '0.5rem', fontFamily: 'var(--header-font)', fontSize: '1rem', color: 'var(--window-border-dark)' }}>
