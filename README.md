@@ -1,5 +1,7 @@
 # 🐸 Froggy Self Care App
 
+**[🌐 Play the Live Demo Here!](https://frog-self-care-170395053839.us-central1.run.app)**
+
 A charming, 2000s-inspired retro pixel art web application designed to help you take care of yourself by taking care of a virtual pet frog! 
 
 Earn coins and keep Froggy happy by tracking your mood, practicing mindfulness, and playing fun mini-games.
