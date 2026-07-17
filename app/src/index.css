@@ -1,0 +1,206 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+
+:root, .theme-pink {
+  --bg-color: #fce4ec; /* Pastel pink */
+  --window-bg: #fff;
+  --window-border-light: #f8bbd0;
+  --window-border-dark: #c2185b;
+  --window-title-bg: #f48fb1;
+  --window-title-text: #fff;
+  --text-primary: #880e4f;
+  
+  --button-bg: #f8bbd0;
+  --button-active: #f48fb1;
+  --button-border-light: #fff;
+  --button-border-dark: #c2185b;
+
+  --pixel-font: 'VT323', monospace;
+  --header-font: 'Press Start 2P', cursive;
+}
+
+.theme-purple {
+  --bg-color: #f3e5f5;
+  --window-border-light: #e1bee7;
+  --window-border-dark: #7b1fa2;
+  --window-title-bg: #ce93d8;
+  --text-primary: #4a148c;
+  --button-bg: #e1bee7;
+  --button-active: #ce93d8;
+  --button-border-light: #fff;
+  --button-border-dark: #7b1fa2;
+}
+
+.theme-blue {
+  --bg-color: #e3f2fd;
+  --window-border-light: #bbdefb;
+  --window-border-dark: #1976d2;
+  --window-title-bg: #90caf9;
+  --text-primary: #0d47a1;
+  --button-bg: #bbdefb;
+  --button-active: #90caf9;
+  --button-border-light: #fff;
+  --button-border-dark: #1976d2;
+}
+
+.theme-green {
+  --bg-color: #e8f5e9;
+  --window-border-light: #c8e6c9;
+  --window-border-dark: #388e3c;
+  --window-title-bg: #a5d6a7;
+  --text-primary: #1b5e20;
+  --button-bg: #c8e6c9;
+  --button-active: #a5d6a7;
+  --button-border-light: #fff;
+  --button-border-dark: #388e3c;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--pixel-font);
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  font-size: 1.2rem;
+  background-image: radial-gradient(var(--window-border-light) 2px, transparent 2px);
+  background-size: 20px 20px;
+}
+
+/* 2000s OS Window Style */
+.window {
+  background-color: var(--window-bg);
+  border: 4px solid var(--window-border-dark);
+  border-right-color: var(--window-border-dark);
+  border-bottom-color: var(--window-border-dark);
+  border-left-color: var(--window-border-light);
+  border-top-color: var(--window-border-light);
+  box-shadow: 4px 4px 0px rgba(194, 24, 91, 0.3);
+  margin: 1rem auto;
+  max-width: 600px;
+}
+
+.window-header {
+  background-color: var(--window-title-bg);
+  color: var(--window-title-text);
+  padding: 0.5rem;
+  font-family: var(--header-font);
+  font-size: 0.8rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid var(--window-border-dark);
+}
+
+.window-content {
+  padding: 1rem;
+}
+
+/* Pixel Button Style */
+.btn {
+  font-family: var(--pixel-font);
+  font-size: 1.2rem;
+  background-color: var(--button-bg);
+  color: var(--text-primary);
+  border: 3px solid;
+  border-top-color: var(--button-border-light);
+  border-left-color: var(--button-border-light);
+  border-bottom-color: var(--button-border-dark);
+  border-right-color: var(--button-border-dark);
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  box-shadow: 2px 2px 0px rgba(194, 24, 91, 0.2);
+}
+
+.btn:active {
+  background-color: var(--button-active);
+  border-top-color: var(--button-border-dark);
+  border-left-color: var(--button-border-dark);
+  border-bottom-color: var(--button-border-light);
+  border-right-color: var(--button-border-light);
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-color);
+  border-left: 2px solid var(--window-border-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--window-title-bg);
+  border: 2px solid;
+  border-top-color: var(--window-border-light);
+  border-left-color: var(--window-border-light);
+  border-bottom-color: var(--window-border-dark);
+  border-right-color: var(--window-border-dark);
+}
+
+input, textarea {
+  font-family: var(--pixel-font);
+  font-size: 1.2rem;
+  padding: 0.5rem;
+  border: 2px solid var(--window-border-dark);
+  border-right-color: var(--window-border-light);
+  border-bottom-color: var(--window-border-light);
+  background-color: #fff;
+  color: var(--text-primary);
+}
+
+input:focus, textarea:focus {
+  outline: none;
+  border-color: var(--button-active);
+}
+
+/* Bath Mini Game Styles */
+
+.transparent-jpg {
+  mix-blend-mode: multiply;
+}
+
+@keyframes bubblesAppear {
+  0% { opacity: 0; transform: translateX(-50%) scale(0.5) translateY(20px); }
+  100% { opacity: 0.8; transform: translateX(-50%) scale(1) translateY(0); }
+}
+
+@keyframes bubblesFade {
+  0% { opacity: 0.8; transform: translateX(-50%) scale(1) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) scale(1.2) translateY(-20px); }
+}
+
+.bubbles-appear {
+  animation: bubblesAppear 1s forwards;
+}
+
+.bubbles-fade {
+  animation: bubblesFade 1.5s forwards;
+}
+
+@keyframes squeeze {
+  0% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(0.9) rotate(-15deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.shampoo-squeeze {
+  animation: squeeze 0.5s ease-in-out;
+}
+
+@keyframes rinse {
+  0% { transform: rotate(0deg) translateY(0); }
+  25% { transform: rotate(-10deg) translateY(10px); }
+  50% { transform: rotate(10deg) translateY(10px); }
+  75% { transform: rotate(-10deg) translateY(10px); }
+  100% { transform: rotate(0deg) translateY(0); }
+}
+
+.shower-rinse {
+  animation: rinse 1.5s ease-in-out;
+}
