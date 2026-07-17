@@ -74,7 +74,7 @@ export default function SelfCare() {
       <div style={{ marginBottom: '0.5rem' }}>
         <h3 style={{ fontFamily: 'var(--header-font)', fontSize: '0.8rem', marginBottom: '0.25rem' }}>Mood Tracker</h3>
         <p style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>How are you feeling today?</p>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'space-between', flexWrap: 'nowrap' }}>
           {[
             { label: 'Great', img: 'mood_great.png' },
             { label: 'Good', img: 'mood_good.png' },
@@ -82,9 +82,9 @@ export default function SelfCare() {
             { label: 'Sad', img: 'mood_sad.png' },
             { label: 'Angry', img: 'mood_angry.png' }
           ].map(m => (
-            <button key={m.label} className="btn" onClick={() => handleMoodSelect(m.label)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.5rem' }}>
-              <img src={`/assets/${m.img}`} alt={m.label} style={{ width: '40px' }} />
-              <span style={{ fontSize: '0.8rem' }}>{m.label}</span>
+            <button key={m.label} className="btn" onClick={() => handleMoodSelect(m.label)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem', padding: '0.25rem', flex: 1, minWidth: 0 }}>
+              <img src={`/assets/${m.img}`} alt={m.label} style={{ width: '100%', maxWidth: '40px' }} />
+              <span style={{ fontSize: '0.75rem' }}>{m.label}</span>
             </button>
           ))}
         </div>

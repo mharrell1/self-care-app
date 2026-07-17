@@ -175,7 +175,8 @@ export default function CookingGame({ onExit }) {
             <h2 style={{ textShadow: '1px 1px 2px white' }}>Chop the {phase === 'chop_carrots' ? 'Carrots' : 'Tomatoes'}!</h2>
             <div 
               style={{
-                width: '400px',
+                width: '100%',
+                maxWidth: '400px',
                 height: '250px',
                 margin: '1rem auto',
                 backgroundImage: 'url(/assets/cooking/cutting_board.png)',
@@ -208,7 +209,7 @@ export default function CookingGame({ onExit }) {
             <h2 style={{ textShadow: '1px 1px 2px white' }}>Click to add chopped ingredients!</h2>
             <div 
               onClick={handleAddIngredient}
-              style={{ position: 'relative', height: '300px', margin: '1rem auto', width: '400px', cursor: 'pointer' }}
+              style={{ position: 'relative', height: '300px', margin: '1rem auto', width: '100%', maxWidth: '400px', cursor: 'pointer' }}
             >
               <img 
                 src="/assets/cooking/bowl.png"
@@ -249,7 +250,7 @@ export default function CookingGame({ onExit }) {
           >
             <div style={{ position: 'absolute', top: '15%', width: '100%', pointerEvents: 'none' }}>
               <h2 style={{ textShadow: '1px 1px 2px white' }}>Mix for 10 seconds!</h2>
-              <div style={{ position: 'relative', height: '300px', margin: '1rem auto', width: '400px' }}>
+              <div style={{ position: 'relative', height: '300px', margin: '1rem auto', width: '100%', maxWidth: '400px' }}>
                 <img 
                   src="/assets/cooking/bowl.png"
                   alt="Bowl"
@@ -293,7 +294,7 @@ export default function CookingGame({ onExit }) {
           >
             <div style={{ position: 'absolute', top: '15%', width: '100%', pointerEvents: 'none' }}>
               <h2 style={{ textShadow: '1px 1px 2px white' }}>Cook it up! Keep stirring!</h2>
-              <div style={{ position: 'relative', height: '300px', margin: '1rem auto', width: '400px' }}>
+              <div style={{ position: 'relative', height: '300px', margin: '1rem auto', width: '100%', maxWidth: '400px' }}>
                 <img 
                   src="/assets/cooking/frying_pan.png"
                   alt="Pan"
