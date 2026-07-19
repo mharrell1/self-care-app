@@ -46,53 +46,7 @@ export default function Dashboard() {
         </button>
       </div>
 
-      <div style={{ marginTop: '1rem', borderTop: '2px dashed var(--window-border-light)', paddingTop: '0.5rem' }}>
-        <h3 style={{ fontFamily: 'var(--header-font)', fontSize: '0.8rem', marginBottom: '0.5rem' }}>Dress Up</h3>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          {['base', 'partyhat', 'necklace'].map(item => {
-            const isUnlocked = gameState.unlockedItems.includes(item);
-            const isEquipped = gameState.equippedItem === item;
-            
-            return (
-              <div key={item} style={{ 
-                border: '2px solid var(--window-border-dark)', 
-                padding: '0.5rem', 
-                backgroundColor: isEquipped ? 'var(--button-active)' : 'var(--window-bg)' 
-              }}>
-                <div style={{ marginBottom: '0.5rem', textAlign: 'center' }}>
-                  {item === 'base' ? 'No Item' : (item === 'partyhat' ? 'Party Hat + Shirt' : 'Beaded Necklace')}
-                </div>
-                {isUnlocked ? (
-                  <button 
-                    className="btn" 
-                    style={{ width: '100%' }}
-                    onClick={() => updateGameState({ equippedItem: item })}
-                    disabled={isEquipped}
-                  >
-                    {isEquipped ? 'Equipped' : 'Equip'}
-                  </button>
-                ) : (
-                  <button 
-                    className="btn" 
-                    style={{ width: '100%', backgroundColor: '#ddd' }}
-                    onClick={() => {
-                      if (gameState.coins >= 50) {
-                        updateGameState({
-                          coins: gameState.coins - 50,
-                          unlockedItems: [...gameState.unlockedItems, item]
-                        });
-                      }
-                    }}
-                    disabled={gameState.coins < 50}
-                  >
-                    Buy (50 Coins)
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+
       <div style={{ marginTop: '1rem', borderTop: '2px dashed var(--window-border-light)', paddingTop: '0.5rem' }}>
         <h3 style={{ fontFamily: 'var(--header-font)', fontSize: '0.8rem', marginBottom: '0.5rem' }}>Settings</h3>
         

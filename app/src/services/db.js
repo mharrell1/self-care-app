@@ -46,6 +46,7 @@ export const getGameState = async (userId) => {
     happiness: 50,
     cleanliness: 50,
     equippedItem: 'base',
+    equippedItems: [],
     unlockedItems: ['base']
   };
   await setDoc(docRef, defaultState);

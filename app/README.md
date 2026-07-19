@@ -1,15 +1,19 @@
-# React + Vite
+# Frog Self Care
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A virtual pet application where you care for your frog! Keep your frog happy, clean, and fed to earn coins and unlock new features.
 
-Currently, two official plugins are available:
+## Recent Updates
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Interactive Dress Up Closet:** Dress up your frog using a full drag-and-drop closet interface! Clothes hang on shelves and hangers until you drag them onto your frog.
+- **Improved Item Sizing:** All clothing items have been meticulously scaled and positioned to perfectly fit the transparent frog base.
+- **Frog Versions:** Swap between different versions of your frog base directly from the dashboard!
+- **Fishing Minigame Enhancements:** Added more randomization to fish catches so it feels less repetitive.
+- **Cooking Minigame Tweaks:** Improved placement of ingredients in the cooking game for a better aesthetic feel.
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tech Stack
+- React + Vite
+- Firebase
+- React Router DOM
 
 ## Expanding the Oxlint configuration
 

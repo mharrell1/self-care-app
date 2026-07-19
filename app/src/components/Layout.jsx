@@ -39,6 +39,7 @@ function Layout() {
       <div className="window-footer" style={{ borderTop: '2px solid var(--window-border-dark)', padding: '0.5rem', display: 'flex', justifyContent: 'space-around', backgroundColor: 'var(--window-title-bg)' }}>
         <Link to="/" className="btn">Home</Link>
         <Link to="/selfcare" className="btn">Care</Link>
+        <Link to="/dressup" className="btn">Dress Up</Link>
         <Link to="/journal" className="btn">Journal</Link>
         <Link to="/games" className="btn">Games</Link>
       </div>

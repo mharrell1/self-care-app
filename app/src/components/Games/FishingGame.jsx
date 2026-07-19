@@ -48,12 +48,12 @@ export default function FishingGame({ onExit }) {
       let speed = 1.5;
       let width = 60;
 
-      if (roll > 0.9) {
+      if (roll > 0.8) {
         rarity = 'epic';
         clicks = 4;
         speed = 2.5;
         width = 40;
-      } else if (roll > 0.6) {
+      } else if (roll > 0.4) {
         rarity = 'rare';
         clicks = 3;
         speed = 2.0;

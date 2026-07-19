@@ -267,7 +267,7 @@ export default function CookingGame({ onExit }) {
                   position: 'absolute',
                   bottom: '20%',
                   left: '50%',
-                  transform: `translateX(-50%) rotate(${mixProgress * 5}deg)`,
+                  transform: `translateX(-50%)`,
                   width: '180px',
                   height: '100px',
                   transition: 'transform 0.1s linear',
@@ -300,17 +300,17 @@ export default function CookingGame({ onExit }) {
                   alt="Pan"
                   style={{
                     position: 'absolute',
-                    bottom: '10%',
+                    bottom: '5%',
                     left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: '280px',
+                    transform: 'translateX(-32%)',
+                    width: '340px',
                   }}
                 />
                 <div style={{
                   position: 'absolute',
-                  bottom: '25%',
+                  bottom: '30%',
                   left: '50%',
-                  transform: `translateX(-50%) scale(${0.8 + (cookProgress / 100) * 0.4})`,
+                  transform: `translateX(-50%)`,
                   width: '160px',
                   height: '80px',
                   transition: 'transform 0.1s linear',
