@@ -179,8 +179,8 @@ export default function LeapingLilypads({ onExit }) {
       backgroundColor: 'var(--window-bg)', padding: '1rem', borderRadius: '10px' 
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', alignItems: 'center' }}>
-        <button className="btn-close" onClick={onExit}>X</button>
-        <h2 style={{ fontFamily: 'var(--header-font)', color: 'var(--primary-color)' }}>Leaping Lilypads</h2>
+        <button className="btn" onClick={onExit}>&lt; Back</button>
+        <span>Leaping Lilypads.exe</span>
         <div style={{ fontWeight: 'bold' }}>Score: {score}</div>
       </div>
 
