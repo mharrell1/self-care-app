@@ -10,7 +10,7 @@ export default function PetView() {
     const itemNames = items.map(i => typeof i === 'object' ? i.name : i);
     if (itemNames.includes('partyhat')) return '/assets/frog_partyhat.png';
     if (itemNames.includes('necklace')) return '/assets/frog_necklace.png';
-    return '/assets/frog_dressup_base.png';
+    return '/assets/frog_naked_transparent.png';
   };
 
   const getClothingStyle = (item) => {
