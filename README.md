@@ -17,6 +17,7 @@ Earn coins and keep Froggy happy by tracking your mood, practicing mindfulness, 
   - 🎣 **Fishing**: A timing-based mini-game to catch common, rare, and epic fish.
   - 🍳 **Cooking**: Prepare a delicious meal for Froggy before the timer runs out by chopping, mixing, and cooking ingredients.
   - 🛁 **Bathing**: Pop the bubbles to keep Froggy squeaky clean!
+  - 🐸 **Leaping Lilypads**: Hop through a vibrant pond! Hold to charge your jump and aim for the lilypads without falling in the water.
 - **Secret Journal**: A safe space to write down your daily thoughts and reflections.
 - **Dress Up & Customization**: Use the coins you earn from self-care activities and games to buy cute accessories like party hats and necklaces for your frog!
 - **Retro Aesthetic**: A cozy, nostalgic 2000s OS window interface with multiple color themes (Pink, Purple, Blue, Green).

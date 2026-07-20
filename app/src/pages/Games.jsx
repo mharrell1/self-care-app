@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import CookingGame from '../components/Games/CookingGame';
 import BathingGame from '../components/Games/BathingGame';
 import FishingGame from '../components/Games/FishingGame';
+import LeapingLilypads from '../components/Games/LeapingLilypads';
 
 export default function Games() {
   const [activeGame, setActiveGame] = useState(null);
@@ -18,6 +19,10 @@ export default function Games() {
     return <FishingGame onExit={() => setActiveGame(null)} />;
   }
 
+  if (activeGame === 'lilypads') {
+    return <LeapingLilypads onExit={() => setActiveGame(null)} />;
+  }
+
   return (
     <div style={{ padding: '1rem', textAlign: 'center' }}>
       <h3 style={{ fontFamily: 'var(--header-font)', fontSize: '0.8rem', marginBottom: '2rem' }}>Mini Games</h3>
@@ -32,8 +37,8 @@ export default function Games() {
         <button className="btn" onClick={() => setActiveGame('fishing')}>
           Fishing
         </button>
-        <button className="btn" style={{ backgroundColor: '#ddd' }} disabled>
-          Lilypad Jump (Coming Soon)
+        <button className="btn" onClick={() => setActiveGame('lilypads')}>
+          Leaping Lilypads
         </button>
       </div>
     </div>
