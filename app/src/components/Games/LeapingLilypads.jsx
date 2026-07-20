@@ -191,7 +191,7 @@ export default function LeapingLilypads({ onExit }) {
         backgroundSize: 'cover', backgroundPosition: 'bottom center',
         borderRadius: '10px', border: '3px solid var(--window-border-dark)',
         maxWidth: '500px', margin: '0 auto', width: '100%',
-        height: 'calc(100vh - 280px)', minHeight: '300px', maxHeight: '600px'
+        height: '350px'
       }}>
         {!isPlaying && !gameOver && (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.6)', color: 'white', padding: '2rem', textAlign: 'center' }}>
