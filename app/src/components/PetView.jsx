@@ -7,10 +7,10 @@ export default function PetView() {
   const getFrogImage = () => {
     if (gameState.hunger < 30) return '/assets/frog_sad.png';
     const items = gameState.equippedItems || (gameState.equippedItem ? [gameState.equippedItem] : []);
-    const itemNames = items.map(i => typeof i === 'object' ? i.name : i);
+    const itemNames = items.filter(i => typeof i === 'string');
     if (itemNames.includes('partyhat')) return '/assets/frog_partyhat.png';
     if (itemNames.includes('necklace')) return '/assets/frog_necklace.png';
-    return '/assets/frog_naked_transparent.png';
+    return '/assets/frog_dressup_base.png';
   };
 
   const getClothingStyle = (item) => {
@@ -38,8 +38,7 @@ export default function PetView() {
   const setBaseFrog = (base) => {
     let currentEquipped = gameState.equippedItems || [];
     currentEquipped = currentEquipped.filter(i => {
-      const name = typeof i === 'object' ? i.name : i;
-      return name !== 'partyhat' && name !== 'necklace';
+      return typeof i === 'string' && i !== 'partyhat' && i !== 'necklace';
     });
     if (base !== 'base') {
       currentEquipped.push(base);
@@ -63,21 +62,18 @@ export default function PetView() {
             alt={gameState.petName} 
             style={{ width: '150px', height: '150px', objectFit: 'contain' }}
           />
-          {(gameState.equippedItems || (gameState.equippedItem && gameState.equippedItem !== 'base' ? [gameState.equippedItem] : [])).map((item, idx) => {
-            const itemName = typeof item === 'object' ? item.name : item;
-            if (['partyhat', 'necklace'].includes(itemName)) return null; 
-            
-            // Support the freeform drag-and-drop test coordinates if they exist
-            const styleOverride = typeof item === 'object' ? { top: item.top, left: item.left } : {};
-            
-            return (
-              <img 
-                key={`${itemName}-${idx}`}
-                src={`/assets/clothing/${itemName}.png`} 
-                alt={itemName} 
-                style={{ ...getClothingStyle(itemName), ...styleOverride }}
-              />
-            );
+          {(gameState.equippedItems || (gameState.equippedItem && gameState.equippedItem !== 'base' ? [gameState.equippedItem] : []))
+            .filter(item => typeof item === 'string')
+            .map(item => {
+              if (['partyhat', 'necklace'].includes(item)) return null; 
+              return (
+                <img 
+                  key={item}
+                  src={`/assets/clothing/${item}.png`} 
+                  alt={item} 
+                  style={getClothingStyle(item)}
+                />
+              );
           })}
         </div>
       </div>
