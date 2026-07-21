@@ -1,5 +1,6 @@
-import { db, firebaseConfig } from '../firebase';
+import { db, storage, firebaseConfig } from '../firebase';
 import { doc, getDoc, setDoc, collection, addDoc, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -116,4 +117,47 @@ export const getMoodHistory = async (userId) => {
     moods.push(doc.data());
   });
   return moods.sort((a, b) => new Date(a.date) - new Date(b.date));
+};
+
+export const savePhoto = async (userId, photoEntry) => {
+  const entry = { ...photoEntry, date: new Date().toISOString(), userId };
+  
+  if (!isConfigured) {
+    await delay(200);
+    entry.id = Date.now().toString();
+    const existing = JSON.parse(localStorage.getItem(`frog_photos_${userId}`) || '[]');
+    existing.unshift(entry);
+    localStorage.setItem(`frog_photos_${userId}`, JSON.stringify(existing));
+    return entry;
+  }
+
+  try {
+    const imageId = Date.now().toString();
+    const storageRef = ref(storage, `photos/${userId}/${imageId}.jpg`);
+    await uploadString(storageRef, photoEntry.bg, 'data_url');
+    const downloadURL = await getDownloadURL(storageRef);
+    entry.bg = downloadURL;
+  } catch (error) {
+    console.error("Error uploading to Firebase Storage:", error);
+    // If storage fails, we could fallback to base64, but better to let it fail or continue
+  }
+
+  const docRef = await addDoc(collection(db, "photos"), entry);
+  entry.id = docRef.id;
+  return entry;
+};
+
+export const getPhotos = async (userId) => {
+  if (!isConfigured) {
+    await delay(200);
+    return JSON.parse(localStorage.getItem(`frog_photos_${userId}`) || '[]');
+  }
+
+  const q = query(collection(db, "photos"), where("userId", "==", userId));
+  const querySnapshot = await getDocs(q);
+  const photos = [];
+  querySnapshot.forEach((doc) => {
+    photos.push({ id: doc.id, ...doc.data() });
+  });
+  return photos.sort((a, b) => new Date(b.date) - new Date(a.date));
 };

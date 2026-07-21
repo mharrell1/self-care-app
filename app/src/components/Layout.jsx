@@ -18,12 +18,14 @@ function Layout() {
       case '/journal': return 'Secret Journal.exe';
       case '/games': return 'Mini Games Collection';
       case '/selfcare': return 'Self Care Zone';
+      case '/dressup': return 'Dress Up.exe';
+      case '/photos': return 'Photo Booth.exe';
       default: return 'Froggy App';
     }
   };
 
   return (
-    <div className="window" style={{ display: 'flex', flexDirection: 'column', minHeight: '90vh' }}>
+    <div className="window" style={{ display: 'flex', flexDirection: 'column', height: '750px' }}>
       <div className="window-header">
         <span>{getWindowTitle()}</span>
         <div>
@@ -33,13 +35,14 @@ function Layout() {
           <span style={{ cursor: 'pointer', margin: '0 5px' }}>X</span>
         </div>
       </div>
-      <div className="window-content" style={{ flexGrow: 1 }}>
+      <div className="window-content" style={{ flexGrow: 1, overflowY: 'auto' }}>
         <Outlet />
       </div>
       <div className="window-footer" style={{ borderTop: '2px solid var(--window-border-dark)', padding: '0.5rem', display: 'flex', justifyContent: 'space-around', backgroundColor: 'var(--window-title-bg)' }}>
         <Link to="/" className="btn">Home</Link>
         <Link to="/selfcare" className="btn">Care</Link>
         <Link to="/dressup" className="btn">Dress Up</Link>
+        <Link to="/photos" className="btn">Photos</Link>
         <Link to="/journal" className="btn">Journal</Link>
         <Link to="/games" className="btn">Games</Link>
       </div>

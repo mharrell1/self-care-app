@@ -1,40 +1,11 @@
 import React from 'react';
 import { useGame } from '../context/GameContext';
 
+import FrogAvatar from './FrogAvatar';
+
 export default function PetView() {
   const { gameState, updateGameState } = useGame();
   
-  const getFrogImage = () => {
-    if (gameState.hunger < 30) return '/assets/frog_sad.png';
-    const items = gameState.equippedItems || (gameState.equippedItem ? [gameState.equippedItem] : []);
-    const itemNames = items.filter(i => typeof i === 'string');
-    if (itemNames.includes('partyhat')) return '/assets/frog_partyhat.png';
-    if (itemNames.includes('necklace')) return '/assets/frog_necklace.png';
-    return '/assets/frog_dressup_base.png';
-  };
-
-  const getClothingStyle = (item) => {
-    const baseStyle = { position: 'absolute', pointerEvents: 'none', zIndex: 10 };
-    switch (item) {
-      case 'iridescent_bow':
-        return { ...baseStyle, top: '-10%', left: '50%', transform: 'translateX(-50%)', width: '45px' };
-      case 'pink_dress':
-        return { ...baseStyle, top: '72%', left: '50%', transform: 'translate(-50%, -50%)', width: '165px' };
-      case 'blue_dress':
-        return { ...baseStyle, top: '88%', left: '50%', transform: 'translate(-50%, -50%)', width: '220px' };
-      case 'frog_shirt':
-        return { ...baseStyle, top: '72%', left: '50%', transform: 'translate(-50%, -50%)', width: '130px' };
-      case 'holographic_handbag':
-        return { ...baseStyle, top: '50%', left: '15%', width: '45px' };
-      case 'pink_heart_purse':
-        return { ...baseStyle, top: '50%', left: '60%', width: '45px' };
-      case 'pink_sunglasses':
-        return { ...baseStyle, top: '8%', left: '50%', transform: 'translate(-50%, -50%)', width: '60px' };
-      default:
-        return { ...baseStyle, top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '100px' };
-    }
-  };
-
   const setBaseFrog = (base) => {
     let currentEquipped = gameState.equippedItems || [];
     currentEquipped = currentEquipped.filter(i => {
@@ -47,7 +18,7 @@ export default function PetView() {
   };
 
   return (
-    <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+    <div style={{ textAlign: 'center', marginBottom: '0.5rem' }}>
       <div style={{
         backgroundColor: '#fff',
         border: '3px solid var(--window-border-dark)',
@@ -56,29 +27,10 @@ export default function PetView() {
         display: 'inline-block',
         boxShadow: 'inset 2px 2px 5px rgba(0,0,0,0.1)'
       }}>
-        <div style={{ position: 'relative', display: 'inline-block', width: '150px', height: '150px' }}>
-          <img 
-            src={getFrogImage()} 
-            alt={gameState.petName} 
-            style={{ width: '150px', height: '150px', objectFit: 'contain' }}
-          />
-          {(gameState.equippedItems || (gameState.equippedItem && gameState.equippedItem !== 'base' ? [gameState.equippedItem] : []))
-            .filter(item => typeof item === 'string')
-            .map(item => {
-              if (['partyhat', 'necklace'].includes(item)) return null; 
-              return (
-                <img 
-                  key={item}
-                  src={`/assets/clothing/${item}.png`} 
-                  alt={item} 
-                  style={getClothingStyle(item)}
-                />
-              );
-          })}
-        </div>
+        <FrogAvatar gameState={gameState} />
       </div>
 
-      <div style={{ marginTop: '1rem' }}>
+      <div style={{ marginTop: '0.5rem' }}>
         <p style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--text-color)' }}>Frog Version:</p>
         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
           <button onClick={() => setBaseFrog('base')} style={btnStyle}>Default</button>
@@ -87,7 +39,7 @@ export default function PetView() {
         </div>
       </div>
 
-      <h2 style={{ color: 'var(--primary-color)', textShadow: '1px 1px 0px #fff', marginTop: '1rem' }}>
+      <h2 style={{ color: 'var(--primary-color)', textShadow: '1px 1px 0px #fff', marginTop: '0.5rem' }}>
         {gameState.petName}
       </h2>
       

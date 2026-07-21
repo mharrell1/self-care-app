@@ -47,7 +47,7 @@ export default function Dashboard() {
       </div>
 
 
-      <div style={{ marginTop: '1rem', borderTop: '2px dashed var(--window-border-light)', paddingTop: '0.5rem' }}>
+      <div style={{ marginTop: '0.5rem', borderTop: '2px dashed var(--window-border-light)', paddingTop: '0.5rem' }}>
         <h3 style={{ fontFamily: 'var(--header-font)', fontSize: '0.8rem', marginBottom: '0.5rem' }}>Settings</h3>
         
         {/* Name Setting */}

@@ -5,6 +5,7 @@ export default function DressUp() {
   const { gameState, updateGameState } = useGame();
   const [draggingItem, setDraggingItem] = useState(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [isClick, setIsClick] = useState(true);
   const containerRef = useRef(null);
   const frogRef = useRef(null);
 
@@ -14,20 +15,21 @@ export default function DressUp() {
   ];
 
   const closetPositions = {
-    'iridescent_bow': { top: '22%', left: '55%' },
+    'iridescent_bow': { top: '22%', left: 'calc(55% + 20px)' },
     'pink_sunglasses': { top: '22%', left: '42%' },
-    'blue_dress': { top: '45%', left: '45%' },
-    'pink_dress': { top: '42%', left: '51%' },
-    'frog_shirt': { top: '38%', left: '57%' },
-    'holographic_handbag': { top: '30%', left: '15%' },
+    'blue_dress': { top: '45%', left: 'calc(45% + 35px)' },
+    'pink_dress': { top: 'calc(42% - 7px)', left: 'calc(51% + 28px)' },
+    'frog_shirt': { top: '38%', left: 'calc(57% + 35px)' },
+    'holographic_handbag': { top: 'calc(30% - 7px)', left: 'calc(15% - 20px)' },
     'pink_heart_purse': { top: '50%', left: '82%' }
   };
 
   const getFrogImage = () => {
     if (gameState.hunger < 30) return '/assets/frog_sad.png';
     const items = gameState.equippedItems || (gameState.equippedItem ? [gameState.equippedItem] : []);
-    if (items.includes('partyhat')) return '/assets/frog_partyhat.png';
-    if (items.includes('necklace')) return '/assets/frog_necklace.png';
+    const itemNames = items.map(i => typeof i === 'object' ? i.name : i);
+    if (itemNames.includes('partyhat')) return '/assets/frog_partyhat.png';
+    if (itemNames.includes('necklace')) return '/assets/frog_necklace.png';
     return '/assets/frog_dressup_base.png';
   };
 
@@ -36,32 +38,44 @@ export default function DressUp() {
     if (!gameState.unlockedItems.includes(item)) return; 
     setDraggingItem(item);
     setMousePos({ x: e.clientX, y: e.clientY });
+    setIsClick(true);
   };
 
   const handlePointerMove = (e) => {
     if (draggingItem) {
       setMousePos({ x: e.clientX, y: e.clientY });
+      setIsClick(false);
     }
   };
 
   const handlePointerUp = (e) => {
     if (draggingItem) {
-      if (frogRef.current) {
-        const frogRect = frogRef.current.getBoundingClientRect();
-        if (
-          e.clientX >= frogRect.left && e.clientX <= frogRect.right &&
-          e.clientY >= frogRect.top && e.clientY <= frogRect.bottom
-        ) {
-          // Equip it
-          const currentEquipped = gameState.equippedItems || [];
-          if (!currentEquipped.includes(draggingItem)) {
-            updateGameState({ equippedItems: [...currentEquipped, draggingItem] });
-          }
+      const currentEquipped = gameState.equippedItems || [];
+      const isCurrentlyEquipped = currentEquipped.some(i => (typeof i === 'object' ? i.name : i) === draggingItem);
+
+      if (isClick) {
+        if (isCurrentlyEquipped) {
+          const filtered = currentEquipped.filter(i => (typeof i === 'object' ? i.name : i) !== draggingItem);
+          updateGameState({ equippedItems: filtered });
         } else {
-          // Unequip it
-          const currentEquipped = gameState.equippedItems || [];
-          if (currentEquipped.includes(draggingItem)) {
-            updateGameState({ equippedItems: currentEquipped.filter(i => i !== draggingItem) });
+          updateGameState({ equippedItems: [...currentEquipped, draggingItem] });
+        }
+      } else {
+        if (frogRef.current) {
+          const frogRect = frogRef.current.getBoundingClientRect();
+          const padding = 50; // Allow a 50px overflow buffer for dropping large items
+          if (
+            e.clientX >= frogRect.left - padding && e.clientX <= frogRect.right + padding &&
+            e.clientY >= frogRect.top - padding && e.clientY <= frogRect.bottom + padding
+          ) {
+            const dropX = ((e.clientX - frogRect.left) / frogRect.width) * 100;
+            const dropY = ((e.clientY - frogRect.top) / frogRect.height) * 100;
+            const newItem = { name: draggingItem, top: `${dropY}%`, left: `${dropX}%` };
+            const filtered = currentEquipped.filter(i => (typeof i === 'object' ? i.name : i) !== draggingItem);
+            updateGameState({ equippedItems: [...filtered, newItem] });
+          } else {
+            const filtered = currentEquipped.filter(i => (typeof i === 'object' ? i.name : i) !== draggingItem);
+            updateGameState({ equippedItems: filtered });
           }
         }
       }
@@ -83,16 +97,16 @@ export default function DressUp() {
   };
 
   const getClothingStyle = (item) => {
-    const baseStyle = { position: 'absolute', pointerEvents: 'none', zIndex: 10 };
+    const baseStyle = { position: 'absolute', pointerEvents: 'none', zIndex: 10, top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
     switch (item) {
-      case 'iridescent_bow': return { ...baseStyle, top: '-10%', left: '50%', transform: 'translateX(-50%)', width: '45px' };
-      case 'pink_dress': return { ...baseStyle, top: '72%', left: '50%', transform: 'translate(-50%, -50%)', width: '165px' };
-      case 'blue_dress': return { ...baseStyle, top: '88%', left: '50%', transform: 'translate(-50%, -50%)', width: '220px' };
-      case 'frog_shirt': return { ...baseStyle, top: '72%', left: '50%', transform: 'translate(-50%, -50%)', width: '130px' };
-      case 'holographic_handbag': return { ...baseStyle, top: '50%', left: '15%', width: '45px' };
-      case 'pink_heart_purse': return { ...baseStyle, top: '50%', left: '60%', width: '45px' };
-      case 'pink_sunglasses': return { ...baseStyle, top: '8%', left: '50%', transform: 'translate(-50%, -50%)', width: '60px' };
-      default: return { ...baseStyle, top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '100px' };
+      case 'iridescent_bow': return { ...baseStyle, width: '45px' };
+      case 'pink_dress': return { ...baseStyle, width: '190px' };
+      case 'blue_dress': return { ...baseStyle, width: '220px' };
+      case 'frog_shirt': return { ...baseStyle, width: '130px' };
+      case 'holographic_handbag': return { ...baseStyle, width: '45px' };
+      case 'pink_heart_purse': return { ...baseStyle, width: '45px' };
+      case 'pink_sunglasses': return { ...baseStyle, width: '60px' };
+      default: return { ...baseStyle, width: '100px' };
     }
   };
 
@@ -104,7 +118,7 @@ export default function DressUp() {
       onPointerLeave={handlePointerUp}
       style={{ 
         width: '100%', 
-        height: '100%',
+        height: '400px',
         minHeight: '400px',
         backgroundImage: 'url(/assets/closet_bg.png)',
         backgroundSize: 'cover',
@@ -114,11 +128,10 @@ export default function DressUp() {
       }}
     >
       <div 
-        ref={frogRef}
         style={{
           position: 'absolute',
           bottom: '5%',
-          left: '5%',
+          left: 'calc(15% - 145px)',
           width: '250px',
           height: '250px',
           display: 'flex',
@@ -127,7 +140,7 @@ export default function DressUp() {
           borderRadius: '10px'
         }}
       >
-        <div style={{ position: 'relative', display: 'inline-block', width: '150px', height: '150px', marginBottom: '40px' }}>
+        <div ref={frogRef} style={{ position: 'relative', display: 'inline-block', width: '150px', height: '150px', marginBottom: '40px' }}>
           <img 
             src={getFrogImage()} 
             alt="Frog" 
@@ -135,14 +148,18 @@ export default function DressUp() {
             draggable={false}
           />
           {CLOTHING_ITEMS.map(item => {
-            const isEquipped = (gameState.equippedItems || []).includes(item);
-            if (!isEquipped || draggingItem === item) return null;
+            const equippedItemObj = (gameState.equippedItems || []).find(i => (typeof i === 'object' ? i.name : i) === item);
+            if (!equippedItemObj || draggingItem === item) return null;
+            
+            const isCustomPos = typeof equippedItemObj === 'object';
+            const customStyle = isCustomPos ? { top: equippedItemObj.top, left: equippedItemObj.left } : {};
+
             return (
               <img 
                 key={`equipped-${item}`}
                 src={`/assets/clothing/${item}.png`} 
                 alt={item} 
-                style={{...getClothingStyle(item), cursor: 'grab', pointerEvents: 'auto'}}
+                style={{...getClothingStyle(item), ...customStyle, cursor: 'grab', pointerEvents: 'auto'}}
                 onPointerDown={(e) => handlePointerDown(e, item)}
                 draggable={false}
               />
@@ -153,7 +170,7 @@ export default function DressUp() {
 
       {CLOTHING_ITEMS.map(item => {
         const isUnlocked = gameState.unlockedItems.includes(item);
-        const isEquipped = (gameState.equippedItems || []).includes(item);
+        const isEquipped = (gameState.equippedItems || []).some(i => (typeof i === 'object' ? i.name : i) === item);
         
         if (isEquipped && draggingItem !== item) return null;
 

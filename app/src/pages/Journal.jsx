@@ -20,7 +20,7 @@ export default function Journal() {
   };
 
   return (
-    <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ padding: '0.5rem', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
         <h3 style={{ fontFamily: 'var(--header-font)', fontSize: '0.8rem' }}>New Entry</h3>
         <span style={{ fontSize: '0.8rem', color: '#666' }}>Protected by Cloud Account</span>
@@ -35,7 +35,7 @@ export default function Journal() {
       <button className="btn" onClick={handleSave} style={{ alignSelf: 'flex-end', marginBottom: '2rem' }}>Save to Cloud</button>
 
       <h3 style={{ fontFamily: 'var(--header-font)', fontSize: '0.8rem', marginBottom: '1rem' }}>Past Entries</h3>
-      <div style={{ flexGrow: 1, overflowY: 'auto' }}>
+      <div>
         {entries.map(entry => (
           <div key={entry.id} style={{ 
             border: '2px solid var(--window-border-dark)', 

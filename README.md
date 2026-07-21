@@ -19,7 +19,8 @@ Earn coins and keep Froggy happy by tracking your mood, practicing mindfulness, 
   - 🛁 **Bathing**: Pop the bubbles to keep Froggy squeaky clean!
   - 🐸 **Leaping Lilypads**: Hop through a vibrant pond! Hold to charge your jump and aim for the lilypads without falling in the water.
 - **Secret Journal**: A safe space to write down your daily thoughts and reflections.
-- **Dress Up & Customization**: Use the coins you earn from self-care activities and games to buy cute accessories like party hats and necklaces for your frog!
+- **Dress Up & Customization**: Use the coins you earn from self-care activities and games to buy cute accessories! Freely drag and drop clothing to customize your frog's perfect outfit.
+- **Photobooth**: Use your webcam to take photos with your fully customized frog! Your frog overlays perfectly on the camera feed (like a Tamagotchi Pix), and all photos are securely saved to the cloud so you can view them in your album across devices.
 - **Retro Aesthetic**: A cozy, nostalgic 2000s OS window interface with multiple color themes (Pink, Purple, Blue, Green).
 
 ## 🚀 Tech Stack

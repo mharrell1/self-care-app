@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAi1RkterMMer82eAx4iWBlh6TYFiWtGzc",
@@ -12,7 +13,7 @@ const firebaseConfig = {
   measurementId: "G-RMGW505XVK"
 };
 
-let app, auth, db;
+let app, auth, db, storage;
 
 try {
   // Only initialize if the placeholder has been replaced
@@ -20,9 +21,10 @@ try {
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
+    storage = getStorage(app);
   }
 } catch (error) {
   console.error("Firebase initialization error", error);
 }
 
-export { auth, db, firebaseConfig };
+export { auth, db, storage, firebaseConfig };
