@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useGame } from '../context/GameContext';
 import FrogAvatar from '../components/FrogAvatar';
 import { savePhoto, getPhotos } from '../services/db';
+import html2canvas from 'html2canvas';
 
 export default function Photos() {
   const { gameState, userId } = useGame();
@@ -75,6 +76,27 @@ export default function Photos() {
       hunger: gameState.hunger,
       petName: gameState.petName
     });
+  };
+
+  const downloadPhoto = async (photoId) => {
+    const element = document.getElementById(`photo-${photoId}`);
+    if (!element) return;
+    
+    // Hide the date label briefly for a cleaner download
+    const dateLabel = document.getElementById(`date-${photoId}`);
+    if (dateLabel) dateLabel.style.display = 'none';
+
+    try {
+      const canvas = await html2canvas(element, { useCORS: true, backgroundColor: null });
+      const link = document.createElement('a');
+      link.download = `froggy_photo_${photoId}.jpg`;
+      link.href = canvas.toDataURL('image/jpeg', 0.9);
+      link.click();
+    } catch (e) {
+      console.error("Failed to download photo", e);
+    } finally {
+      if (dateLabel) dateLabel.style.display = 'block';
+    }
   };
 
   return (
@@ -173,14 +195,20 @@ export default function Photos() {
             </p>
           ) : (
             photos.map(photo => (
-              <div key={photo.id} style={{ 
-                position: 'relative', 
-                aspectRatio: '4/3',
-                backgroundColor: '#eee',
-                borderRadius: '10px',
-                overflow: 'hidden',
-                boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
-              }}>
+              <div 
+                key={photo.id}
+                id={`photo-${photo.id}`}
+                onClick={() => downloadPhoto(photo.id)}
+                title="Click to download!"
+                style={{ 
+                  position: 'relative', 
+                  aspectRatio: '4/3',
+                  backgroundColor: '#eee',
+                  borderRadius: '10px',
+                  overflow: 'hidden',
+                  boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+                  cursor: 'pointer'
+                }}>
                 <img src={photo.bg} alt="Background" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 <div style={{ 
                   position: 'absolute', 
@@ -193,14 +221,17 @@ export default function Photos() {
                 }}>
                   <FrogAvatar gameState={photo} />
                 </div>
-                <div style={{
-                  position: 'absolute',
-                  bottom: '5px',
-                  left: '10px',
-                  color: 'white',
-                  textShadow: '1px 1px 2px black',
-                  fontSize: '0.7rem'
-                }}>
+                <div 
+                  id={`date-${photo.id}`}
+                  style={{
+                    position: 'absolute',
+                    bottom: '5px',
+                    left: '10px',
+                    color: 'white',
+                    textShadow: '1px 1px 2px black',
+                    fontSize: '0.7rem'
+                  }}
+                >
                   {new Date(photo.date).toLocaleDateString()}
                 </div>
               </div>
