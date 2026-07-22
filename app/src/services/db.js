@@ -183,7 +183,13 @@ export const savePhoto = async (userId, photoEntry) => {
     const docRef = await addDoc(collection(db, "photos"), entry);
     entry.id = docRef.id;
   } catch (error) {
-    console.error("Firebase Storage/Firestore error (saved locally):", error);
+    console.warn("Storage upload fallback: saving photo directly to Firestore Cloud DB...", error);
+    try {
+      const docRef = await addDoc(collection(db, "photos"), entry);
+      entry.id = docRef.id;
+    } catch (fsErr) {
+      console.error("Firestore photo save error:", fsErr);
+    }
   }
 
   return entry;
