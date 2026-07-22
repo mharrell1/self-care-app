@@ -5,8 +5,8 @@ export default function FrogAvatar({ gameState }) {
     if (gameState.hunger < 30) return '/assets/frog_sad.png';
     const items = gameState.equippedItems || (gameState.equippedItem ? [gameState.equippedItem] : []);
     const itemNames = items.filter(i => typeof i === 'string');
-    if (itemNames.includes('partyhat')) return '/assets/frog_partyhat.png';
-    if (itemNames.includes('necklace')) return '/assets/frog_necklace.png';
+    if (itemNames.includes('partyhat')) return '/assets/frog_partyhat.png?v=20260722_01';
+    if (itemNames.includes('necklace')) return '/assets/frog_necklace.png?v=20260722_01';
     return '/assets/frog_dressup_base.png';
   };
 
