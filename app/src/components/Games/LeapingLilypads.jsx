@@ -13,8 +13,8 @@ export default function LeapingLilypads({ onExit }) {
   const [gameOver, setGameOver] = useState(false);
   const [score, setScore] = useState(0);
   
-  const frogRef = useRef({ x: 200, y: 50, vx: 0, vy: 0, width: 40, height: 40, isGrounded: true });
-  const padsRef = useRef([]); 
+  const frogRef = useRef({ x: 200, y: 80, vx: 0, vy: 0, width: 120, height: 120, isGrounded: true });
+  const padsRef = useRef([{ x: 200, y: 80, width: 180, height: 25 }]); 
   
   const [renderTrigger, setRenderTrigger] = useState(0);
   const [charge, setCharge] = useState(0);
@@ -27,17 +27,18 @@ export default function LeapingLilypads({ onExit }) {
   const cameraY = useRef(0);
 
   const startGame = () => {
-    frogRef.current = { x: 200, y: 50, vx: 0, vy: 0, width: 40, height: 40, isGrounded: true };
+    document.activeElement?.blur();
+    frogRef.current = { x: 200, y: 80, vx: 0, vy: 0, width: 120, height: 120, isGrounded: true };
     cameraY.current = 0;
     padsRef.current = [
-      { x: 200, y: 50, width: 100, height: 20 }
+      { x: 200, y: 80, width: 180, height: 25 }
     ];
     for (let i = 1; i < 8; i++) {
       padsRef.current.push({
-        x: Math.random() * (SCREEN_WIDTH - 100) + 50,
-        y: i * 120 + 50,
-        width: 80,
-        height: 20
+        x: Math.random() * (SCREEN_WIDTH - 160) + 80,
+        y: i * 120 + 80,
+        width: 150,
+        height: 25
       });
     }
     setScore(0);
@@ -68,44 +69,56 @@ export default function LeapingLilypads({ onExit }) {
       const prevY = frog.y;
       frog.y += frog.vy;
       
-      if (frog.x < 20) { frog.x = 20; frog.vx *= -0.5; }
-      if (frog.x > SCREEN_WIDTH - 20) { frog.x = SCREEN_WIDTH - 20; frog.vx *= -0.5; }
+      if (frog.x < 70) { frog.x = 70; frog.vx *= -0.5; }
+      if (frog.x > SCREEN_WIDTH - 70) { frog.x = SCREEN_WIDTH - 70; frog.vx *= -0.5; }
       
       if (frog.vy < 0) {
         for (let pad of padsRef.current) {
-          if (prevY >= pad.y && frog.y <= pad.y) {
-             if (frog.x > pad.x - pad.width/2 && frog.x < pad.x + pad.width/2) {
-                 frog.y = pad.y;
-                 frog.vy = 0;
-                 frog.vx = 0;
-                 frog.isGrounded = true;
-                 
-                 const padIndex = Math.floor(pad.y / 120);
-                 setScore(s => Math.max(s, padIndex * 10));
-                 break;
+          const crossedPad = (prevY >= pad.y - 2 && frog.y <= pad.y + 10);
+          const padLeft = pad.x - pad.width / 2;
+          const padRight = pad.x + pad.width / 2;
+          // Frog can ONLY land if its position is directly on top of the lilypad
+          const touchesGreenPad = (frog.x >= padLeft && frog.x <= padRight);
+
+          if (crossedPad && touchesGreenPad) {
+             frog.y = pad.y;
+             frog.vy = 0;
+             frog.vx = 0;
+             frog.isGrounded = true;
+             
+             // If landing on a lower pad, adjust camera down to keep player in view
+             if (frog.y < cameraY.current + SCREEN_HEIGHT * 0.2) {
+                cameraY.current = Math.max(0, frog.y - SCREEN_HEIGHT * 0.2);
              }
+             
+             const padIndex = Math.floor(pad.y / 120);
+             setScore(s => Math.max(s, padIndex * 10));
+             break;
           }
         }
       }
     }
     
-    if (frog.y > cameraY.current + SCREEN_HEIGHT * 0.4) {
-       cameraY.current = frog.y - SCREEN_HEIGHT * 0.4;
+    // Scroll camera UP when climbing higher
+    if (frog.y > cameraY.current + SCREEN_HEIGHT * 0.65) {
+       cameraY.current = frog.y - SCREEN_HEIGHT * 0.65;
     }
     
     const highestPad = padsRef.current[padsRef.current.length - 1];
     if (highestPad.y < cameraY.current + SCREEN_HEIGHT) {
        padsRef.current.push({
-         x: Math.random() * (SCREEN_WIDTH - 100) + 50,
+         x: Math.random() * (SCREEN_WIDTH - 160) + 80,
          y: highestPad.y + 120,
-         width: 80 - Math.min(40, Math.floor(score/100)*5), // gets smaller over time
-         height: 20
+         width: 150 - Math.min(60, Math.floor(score/100)*5), // gets smaller over time
+         height: 25
        });
     }
     
     padsRef.current = padsRef.current.filter(p => p.y > cameraY.current - 100);
     
-    if (frog.y < cameraY.current - 20) {
+    // Game Over when missing lilypads, clamping frog position so it stays fully inside the window frame
+    if (frog.y <= cameraY.current + 55) {
+       frog.y = cameraY.current + 55;
        setGameOver(true);
        setIsPlaying(false);
        return; 
@@ -140,22 +153,24 @@ export default function LeapingLilypads({ onExit }) {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!isPlaying || gameOver) return;
-      if (e.code === 'Space') {
+      if (e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar') {
          isCharging.current = true;
          e.preventDefault();
       }
-      if (e.code === 'ArrowLeft') {
+      if (e.code === 'ArrowLeft' || e.key === 'ArrowLeft') {
          angleVal.current = Math.max(-45, angleVal.current - 5);
+         setAngle(angleVal.current);
          e.preventDefault();
       }
-      if (e.code === 'ArrowRight') {
+      if (e.code === 'ArrowRight' || e.key === 'ArrowRight') {
          angleVal.current = Math.min(45, angleVal.current + 5);
+         setAngle(angleVal.current);
          e.preventDefault();
       }
     };
     
     const handleKeyUp = (e) => {
-       if (e.code === 'Space') {
+       if (e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar') {
           isCharging.current = false;
        }
     };
@@ -180,8 +195,8 @@ export default function LeapingLilypads({ onExit }) {
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', alignItems: 'center' }}>
         <button className="btn" onClick={onExit}>&lt; Back</button>
-        <span>Leaping Lilypads.exe</span>
         <div style={{ fontWeight: 'bold' }}>Score: {score}</div>
+        <span>Leaping Lilypads.exe</span>
       </div>
 
       <div style={{
@@ -203,7 +218,7 @@ export default function LeapingLilypads({ onExit }) {
         )}
 
         {gameOver && (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.6)', color: 'white' }}>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.6)', color: 'white', zIndex: 30 }}>
             <h2 style={{ fontSize: '2rem', marginBottom: '1rem', color: '#ffdfba' }}>Splash!</h2>
             <p style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>Final Score: {score}</p>
             <p style={{ marginBottom: '1.5rem', color: '#baffc9' }}>+{Math.floor(score/10)*2} Coins!</p>
@@ -214,17 +229,17 @@ export default function LeapingLilypads({ onExit }) {
         {(isPlaying || gameOver) && (
           <>
             {/* Render Lilypads */}
-            {padsRef.current.map((pad, i) => (
+            {!gameOver && padsRef.current.map((pad, i) => (
               <div key={i} style={{
                 position: 'absolute',
                 left: getLeft(pad.x),
                 top: getTop(pad.y),
                 width: `${(pad.width / SCREEN_WIDTH) * 100}%`,
-                height: '15px',
-                transform: 'translate(-50%, 0)',
+                height: '24px',
+                transform: 'translate(-50%, -50%)',
                 backgroundColor: '#3bb143',
                 borderRadius: '50%',
-                borderBottom: '3px solid #236b28',
+                borderBottom: '4px solid #236b28',
                 boxShadow: 'inset 0 4px 0 rgba(255,255,255,0.2)'
               }} />
             ))}
@@ -234,10 +249,10 @@ export default function LeapingLilypads({ onExit }) {
               position: 'absolute',
               left: getLeft(frog.x),
               top: getTop(frog.y),
-              width: '12%',
+              width: '35%',
               height: 'auto',
               aspectRatio: '1/1',
-              transform: 'translate(-50%, -100%)',
+              transform: 'translate(-50%, -55%)',
               zIndex: 10
             }}>
               <img src="/assets/frog_naked_transparent.png" alt="Frog" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
@@ -276,13 +291,26 @@ export default function LeapingLilypads({ onExit }) {
 
       {/* Controls Area */}
       <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
-        <div style={{ width: '100%', maxWidth: '300px', height: '25px', backgroundColor: '#e0e0e0', borderRadius: '15px', overflow: 'hidden', border: '2px solid var(--window-border-dark)' }}>
+        <div style={{ position: 'relative', width: '100%', maxWidth: '300px', height: '25px', backgroundColor: '#e0e0e0', borderRadius: '15px', overflow: 'hidden', border: '2px solid var(--window-border-dark)' }}>
           <div style={{ 
             width: `${(charge / MAX_POWER) * 100}%`, 
             height: '100%', 
             backgroundColor: charge > MAX_POWER * 0.8 ? '#ff5252' : charge > MAX_POWER * 0.5 ? '#ffb142' : '#33d9b2',
             transition: 'background-color 0.2s, width 0.05s'
           }} />
+          <span style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '0.75rem',
+            fontWeight: 'bold',
+            color: '#000',
+            pointerEvents: 'none'
+          }}>
+            {Math.round((charge / MAX_POWER) * 100)}%
+          </span>
         </div>
         <p style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--text-color)' }}>Jump Power</p>
         

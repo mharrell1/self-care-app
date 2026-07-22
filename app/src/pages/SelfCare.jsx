@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
-import { getMoodHistory, saveMood } from '../services/db';
+import { getMoodHistory, saveMood, saveJournalEntry } from '../services/db';
 import { Play, Square } from 'lucide-react';
 
 export default function SelfCare() {
+  const navigate = useNavigate();
   const { gameState, updateGameState, userId } = useGame();
   const [moods, setMoods] = useState([]);
   const [breathingPhase, setBreathingPhase] = useState('idle'); // idle, inhale, hold, exhale
@@ -24,6 +26,14 @@ export default function SelfCare() {
     if (gameState.coins < 1000) {
       updateGameState({ coins: gameState.coins + 20, happiness: Math.min(100, gameState.happiness + 15) });
     }
+  };
+
+  const handleSaveMoodToJournal = async () => {
+    if (!moods.length) return;
+    const lastMood = moods[moods.length - 1];
+    const journalText = `Mood Log (${new Date(lastMood.date).toLocaleDateString()}): Feeling ${lastMood.mood}`;
+    await saveJournalEntry(userId, journalText);
+    navigate('/journal');
   };
 
   // Breathing Exercise Logic
@@ -89,8 +99,15 @@ export default function SelfCare() {
           ))}
         </div>
         {moods.length > 0 && (
-          <div style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}>
-            Last logged: {new Date(moods[moods.length-1].date).toLocaleDateString()} - {moods[moods.length-1].mood}
+          <div style={{ marginTop: '0.65rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', fontSize: '0.8rem' }}>
+            <span>Last logged: {new Date(moods[moods.length-1].date).toLocaleDateString()} - <strong>{moods[moods.length-1].mood}</strong></span>
+            <button 
+              className="btn" 
+              onClick={handleSaveMoodToJournal}
+              style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem' }}
+            >
+              Save Mood to Journal
+            </button>
           </div>
         )}
       </div>
