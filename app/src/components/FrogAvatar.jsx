@@ -14,32 +14,32 @@ export default function FrogAvatar({ gameState }) {
     const baseStyle = { position: 'absolute', pointerEvents: 'none', zIndex: 10, top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
     switch (item) {
       case 'iridescent_bow':
-        return { ...baseStyle, width: '45px' };
+        return { ...baseStyle, width: '30%' };
       case 'pink_dress':
-        return { ...baseStyle, width: '190px' };
+        return { ...baseStyle, width: '126.6%' };
       case 'blue_dress':
-        return { ...baseStyle, width: '220px' };
+        return { ...baseStyle, width: '146.6%' };
       case 'frog_shirt':
-        return { ...baseStyle, width: '130px' };
+        return { ...baseStyle, width: '86.6%' };
       case 'holographic_handbag':
-        return { ...baseStyle, width: '45px' };
+        return { ...baseStyle, width: '30%' };
       case 'pink_heart_purse':
-        return { ...baseStyle, width: '45px' };
+        return { ...baseStyle, width: '30%' };
       case 'pink_sunglasses':
-        return { ...baseStyle, width: '60px' };
+        return { ...baseStyle, width: '40%' };
       default:
-        return { ...baseStyle, width: '100px' };
+        return { ...baseStyle, width: '66.6%' };
     }
   };
 
   const items = gameState.equippedItems || (gameState.equippedItem && gameState.equippedItem !== 'base' ? [gameState.equippedItem] : []);
 
   return (
-    <div style={{ position: 'relative', display: 'inline-block', width: '150px', height: '150px' }}>
+    <div style={{ position: 'relative', display: 'inline-block', width: '100%', height: '100%' }}>
       <img 
         src={getFrogImage()} 
         alt={gameState.petName || 'Frog'} 
-        style={{ width: '150px', height: '150px', objectFit: 'contain' }}
+        style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
         draggable={false}
       />
       {items.map(item => {

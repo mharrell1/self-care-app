@@ -54,11 +54,12 @@ export const getGameState = async (userId) => {
   return defaultState;
 };
 
-export const saveJournalEntry = async (userId, entryContent) => {
+export const saveJournalEntry = async (userId, entryContent, photoUrl = null) => {
   const entry = {
     content: entryContent,
     date: new Date().toISOString(),
-    userId: userId
+    userId: userId,
+    photoUrl: photoUrl
   };
 
   if (!isConfigured) {
@@ -90,10 +91,19 @@ export const getJournalEntries = async (userId) => {
   return entries.sort((a, b) => new Date(b.date) - new Date(a.date));
 };
 
-export const updateJournalEntry = async (userId, entryId, newContent) => {
+export const updateJournalEntry = async (userId, entryId, newContent, photoUrl = undefined) => {
   try {
     const existing = JSON.parse(localStorage.getItem(`frog_journal_${userId}`) || '[]');
-    const updated = existing.map(e => e.id === entryId ? { ...e, content: newContent, editedAt: new Date().toISOString() } : e);
+    const updated = existing.map(e => {
+      if (e.id === entryId) {
+        const updateObj = { ...e, content: newContent, editedAt: new Date().toISOString() };
+        if (photoUrl !== undefined) {
+          updateObj.photoUrl = photoUrl;
+        }
+        return updateObj;
+      }
+      return e;
+    });
     localStorage.setItem(`frog_journal_${userId}`, JSON.stringify(updated));
   } catch (err) {
     console.error("Error updating local journal entry:", err);
@@ -102,7 +112,11 @@ export const updateJournalEntry = async (userId, entryId, newContent) => {
   if (isConfigured && entryId) {
     try {
       const docRef = doc(db, "journals", entryId);
-      await updateDoc(docRef, { content: newContent, editedAt: new Date().toISOString() });
+      const updateData = { content: newContent, editedAt: new Date().toISOString() };
+      if (photoUrl !== undefined) {
+        updateData.photoUrl = photoUrl;
+      }
+      await updateDoc(docRef, updateData);
     } catch (e) {
       console.error("Error updating remote journal entry:", e);
     }
@@ -211,9 +225,14 @@ export const getPhotos = async (userId) => {
       remotePhotos.push({ id: doc.id, ...doc.data() });
     });
     
-    // Combine local and remote photos, avoiding duplicates by id
+    // Deduplicate combined photos using date timestamp or image content key
     const photoMap = new Map();
-    [...remotePhotos, ...localPhotos].forEach(p => photoMap.set(p.id || p.date, p));
+    [...remotePhotos, ...localPhotos].forEach(p => {
+      const key = p.date || p.id || p.bg;
+      if (!photoMap.has(key)) {
+        photoMap.set(key, p);
+      }
+    });
     const combined = Array.from(photoMap.values());
     return combined.sort((a, b) => new Date(b.date) - new Date(a.date));
   } catch (err) {
@@ -222,20 +241,49 @@ export const getPhotos = async (userId) => {
   }
 };
 
-export const deletePhoto = async (userId, photoId) => {
+export const deletePhoto = async (userId, photoId, photoObj) => {
+  const targetDate = photoObj?.date;
+  const targetBg = photoObj?.bg;
+
+  // 1. Remove from LocalStorage
   try {
     const existing = JSON.parse(localStorage.getItem(`frog_photos_${userId}`) || '[]');
-    const filtered = existing.filter(p => p.id !== photoId && p.date !== photoId);
+    const filtered = existing.filter(p => {
+      if (p.id === photoId) return false;
+      if (targetDate && p.date === targetDate) return false;
+      if (targetBg && p.bg === targetBg) return false;
+      return true;
+    });
     localStorage.setItem(`frog_photos_${userId}`, JSON.stringify(filtered));
   } catch (err) {
     console.error("Error deleting local photo:", err);
   }
 
-  if (isConfigured && photoId) {
+  // 2. Remove ALL matching documents from Firestore Cloud DB
+  if (isConfigured) {
     try {
-      await deleteDoc(doc(db, "photos", photoId));
+      if (photoId) {
+        try {
+          await deleteDoc(doc(db, "photos", photoId));
+        } catch (e) {}
+      }
+
+      const q = query(collection(db, "photos"), where("userId", "==", userId));
+      const querySnapshot = await getDocs(q);
+      const deletePromises = [];
+      querySnapshot.forEach((documentSnap) => {
+        const data = documentSnap.data();
+        if (
+          documentSnap.id === photoId ||
+          (targetDate && data.date === targetDate) ||
+          (targetBg && data.bg === targetBg)
+        ) {
+          deletePromises.push(deleteDoc(doc(db, "photos", documentSnap.id)));
+        }
+      });
+      await Promise.all(deletePromises);
     } catch (e) {
-      console.error("Error deleting remote photo:", e);
+      console.error("Error purging remote photo from Firestore:", e);
     }
   }
 };

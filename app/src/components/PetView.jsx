@@ -25,7 +25,10 @@ export default function PetView() {
         borderRadius: '10px',
         padding: '0.5rem',
         display: 'inline-block',
-        boxShadow: 'inset 2px 2px 5px rgba(0,0,0,0.1)'
+        boxShadow: 'inset 2px 2px 5px rgba(0,0,0,0.1)',
+        width: '150px',
+        height: '150px',
+        boxSizing: 'content-box'
       }}>
         <FrogAvatar gameState={gameState} />
       </div>

@@ -13,13 +13,16 @@ Earn coins and keep Froggy happy by tracking your mood, practicing mindfulness, 
   - **Mood Tracker**: Log your daily emotions using cute frog emoticons. Save your mood directly to a new journal entry with one click!
   - **Breathing Exercise**: Follow Froggy's visual cues for a calming 3-2-3 breathing cycle to center yourself.
   - **Meditation Timer**: Set a timer and practice mindfulness to earn coins and happiness points.
-- **Secret Journal**: A safe space to write down your daily thoughts and reflections. Includes **Edit** and **Delete** capabilities for past entries, as well as a one-click **Import Last Mood** feature.
+- **Secret Journal**: A safe space to write down your daily thoughts and reflections. Includes **Edit** and **Delete** capabilities for past entries, a one-click **Import Last Mood** feature, and the ability to **Import Photo** from your photobooth album directly into your journal entries with interactive preview and deletion support.
 - **Photobooth & Album**:
   - **Live Camera & Upload**: Use your live webcam or upload photos to take pictures with your custom frog companion.
   - **Draggable Frog Sticker**: Position and drag your frog sticker anywhere on screen, with a custom outfit choice selector (*Current Outfit*, *Party Hat*, *Necklace*, *Basic Frog*).
+  - **Perfect Aspect Ratio & Accessory Alignment**: Custom aspect-ratio preservation engine (`drawContainImage`) matching browser `object-fit: contain` exactly. Ensures your green illustrated frog base and all equipped dress-up accessories (dresses, hats, sunglasses, bows, bags) are rendered, aligned, and scaled perfectly in both the viewport and saved image files.
+  - **Custom Accessory Placement**: Automatically matches the custom drag-and-drop coordinates (`top` and `left` percentages) for all equipped clothing items, ensuring they render on the high-res composite image exactly where you posed them.
   - **Front & Rear Camera Switch**: Switch seamlessly between front and back camera views on mobile devices.
   - **Pixel Control Bar**: Retro square buttons for Camera Feed, Flash, and Front/Back Camera switching with clean hardware release (turns off camera hardware & indicator light when off).
   - **Enlarged Full-Size Viewer Modal**: Click any thumbnail in your album to view full-size, cycle through photos using square slideshow arrow buttons or keyboard arrow keys, download photos to your device, or delete entries.
+  - **Reliable Storage and Deletion**: Clean multi-key storage syncing and purging across both Firestore and LocalStorage, preventing deleted photos from re-appearing.
 - **Mini-Games**: 
   - 🎣 **Fishing**: A timing-based mini-game to catch common, rare, and epic fish.
   - 🍳 **Cooking**: Prepare a delicious meal for Froggy before the timer runs out by chopping, mixing, and cooking ingredients.

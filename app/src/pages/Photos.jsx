@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useGame } from '../context/GameContext';
 import FrogAvatar from '../components/FrogAvatar';
 import { savePhoto, getPhotos, deletePhoto } from '../services/db';
-import html2canvas from 'html2canvas';
 
 export default function Photos() {
   const { gameState, userId } = useGame();
@@ -25,6 +24,12 @@ export default function Photos() {
 
   // Track downloaded photos for pressed darkening feedback
   const [downloadedPhotos, setDownloadedPhotos] = useState({});
+
+  // Instant Photo Capture Preview & Mobile Download Modal state
+  const [capturedPreview, setCapturedPreview] = useState(null);
+  const [mobileSaveModalUrl, setMobileSaveModalUrl] = useState(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const previewTimerRef = useRef(null);
 
   const [stream, setStream] = useState(null);
   const videoRef = useRef(null);
@@ -162,11 +167,11 @@ export default function Photos() {
     const clientY = e.clientY ?? e.touches?.[0]?.clientY;
     if (clientX === undefined || clientY === undefined) return;
 
-    let x = ((clientX - rect.left) / rect.width) * 100 - 15;
-    let y = ((clientY - rect.top) / rect.height) * 100 - 15;
+    let x = ((clientX - rect.left) / rect.width) * 100 - 14;
+    let y = ((clientY - rect.top) / rect.height) * 100 - 14;
 
-    x = Math.max(0, Math.min(75, x));
-    y = Math.max(0, Math.min(75, y));
+    x = Math.max(0, Math.min(72, x));
+    y = Math.max(0, Math.min(72, y));
 
     setStickerPos({ x, y });
   };
@@ -191,22 +196,172 @@ export default function Photos() {
 
   const activeFrogState = getActiveFrogState();
 
-  const takePhoto = async () => {
-    if (flashEnabled) {
-      setFlash(true);
-      setTimeout(() => setFlash(false), 200);
+  // Pure HTML5 2D Canvas Composite Generator (Single Merged High-Res PNG Photo)
+  const createSingleCompositePhoto = async (bgRaw, pos, frogState) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1200;
+    canvas.height = 900;
+    const ctx = canvas.getContext('2d');
+
+    const loadImage = (src) => {
+      return new Promise((resolve) => {
+        const img = new Image();
+        const cleanSrc = src.split('?')[0];
+        
+        // ONLY use crossOrigin if it is an absolute HTTP/HTTPS URL from a different domain!
+        if (cleanSrc.startsWith('http') && !cleanSrc.startsWith(window.location.origin)) {
+          img.crossOrigin = 'Anonymous';
+        }
+        
+        img.onload = () => resolve(img);
+        img.onerror = (err) => {
+          console.error("Failed to load composite layer image:", cleanSrc, err);
+          resolve(null);
+        };
+        img.src = cleanSrc;
+      });
+    };
+
+    // Helper to draw an image centered with preserved aspect ratio (mimics CSS object-fit: contain)
+    const drawContainImage = (img, dx, dy, dw, dh) => {
+      const imgAspect = img.width / img.height;
+      const boxAspect = dw / dh;
+      let drawW, drawH, drawX, drawY;
+
+      if (imgAspect > boxAspect) {
+        drawW = dw;
+        drawH = dw / imgAspect;
+        drawX = dx;
+        drawY = dy + (dh - drawH) / 2;
+      } else {
+        drawH = dh;
+        drawW = dh * imgAspect;
+        drawX = dx + (dw - drawW) / 2;
+        drawY = dy;
+      }
+
+      ctx.drawImage(img, drawX, drawY, drawW, drawH);
+    };
+
+    // 1. Draw Background Image with 4:3 Cover-Fit alignment
+    if (bgRaw) {
+      const bgImg = await loadImage(bgRaw);
+      if (bgImg) {
+        const targetAspect = 1200 / 900;
+        const imgAspect = bgImg.width / bgImg.height;
+        let srcW, srcH, srcX, srcY;
+
+        if (imgAspect > targetAspect) {
+          srcH = bgImg.height;
+          srcW = bgImg.height * targetAspect;
+          srcX = (bgImg.width - srcW) / 2;
+          srcY = 0;
+        } else {
+          srcW = bgImg.width;
+          srcH = bgImg.width / targetAspect;
+          srcX = 0;
+          srcY = (bgImg.height - srcH) / 2;
+        }
+
+        ctx.drawImage(bgImg, srcX, srcY, srcW, srcH, 0, 0, 1200, 900);
+      } else {
+        const grad = ctx.createLinearGradient(0, 0, 1200, 900);
+        grad.addColorStop(0, '#f8bbd0');
+        grad.addColorStop(1, '#f48fb1');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 1200, 900);
+      }
     }
 
-    let bgDataUrl = customBg;
+    // 2. Determine Frog Base Image
+    const getFrogSrc = (p) => {
+      if (p.hunger < 30) return '/assets/frog_sad.png';
+      const items = p.equippedItems || (p.equippedItem ? [p.equippedItem] : []);
+      const itemNames = items.map(i => typeof i === 'object' ? i.name : i);
+      if (itemNames.includes('partyhat')) return '/assets/mugugins_partyhat_sticker_v2.png';
+      if (itemNames.includes('necklace')) return '/assets/frog_necklace.png';
+      return '/assets/frog_dressup_base.png';
+    };
 
+    const frogSrc = getFrogSrc(frogState);
+    const frogImg = await loadImage(frogSrc);
+
+    if (frogImg) {
+      const pPos = pos || { x: 60, y: 60 };
+      const destX = (pPos.x / 100) * 1200;
+      const destY = (pPos.y / 100) * 900;
+      const stickerBoxW = 0.28 * 1200; // 336px
+      const stickerBoxH = 0.28 * 1200; // 336px
+
+      // Draw Frog Avatar Base with object-fit contain matching
+      drawContainImage(frogImg, destX, destY, stickerBoxW, stickerBoxH);
+
+      // Draw Clothing Accessories matching FrogAvatar percentage math
+      const items = frogState.equippedItems || (frogState.equippedItem && frogState.equippedItem !== 'base' ? [frogState.equippedItem] : []);
+      for (const item of items) {
+        const itemName = typeof item === 'object' ? item.name : item;
+        if (['partyhat', 'necklace', 'base'].includes(itemName)) continue;
+
+        const clothImg = await loadImage(`/assets/clothing/${itemName}.png`);
+        if (clothImg) {
+          const hasCustomPos = typeof item === 'object' && item.left && item.top;
+          const leftPercent = hasCustomPos ? (parseFloat(item.left) / 100) : 0.5;
+          const topPercent = hasCustomPos ? (parseFloat(item.top) / 100) : 0.5;
+
+          const centerX = destX + leftPercent * stickerBoxW;
+          const centerY = destY + topPercent * stickerBoxH;
+
+          let percentW = 0.666;
+          if (itemName === 'pink_dress') percentW = 1.266;
+          if (itemName === 'blue_dress') percentW = 1.466;
+          if (itemName === 'frog_shirt') percentW = 0.866;
+          if (itemName === 'pink_sunglasses') percentW = 0.40;
+          if (['iridescent_bow', 'holographic_handbag', 'pink_heart_purse'].includes(itemName)) percentW = 0.30;
+
+          const clothW = percentW * stickerBoxW;
+          const clothH = (clothImg.height / clothImg.width) * clothW;
+          ctx.drawImage(clothImg, centerX - clothW / 2, centerY - clothH / 2, clothW, clothH);
+        }
+      }
+    }
+
+    return canvas.toDataURL('image/png');
+  };
+
+  const takePhoto = async () => {
+    // 1. Always trigger visual shutter flash pulse immediately
+    setFlash(true);
+    setTimeout(() => setFlash(false), 180);
+
+    let bgDataUrl = customBg;
     if (!bgDataUrl && videoRef.current && stream) {
       try {
+        const vW = videoRef.current.videoWidth || 640;
+        const vH = videoRef.current.videoHeight || 480;
+
         const canvas = document.createElement('canvas');
-        canvas.width = videoRef.current.videoWidth || 640;
-        canvas.height = videoRef.current.videoHeight || 480;
+        canvas.width = 1200;
+        canvas.height = 900;
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-        bgDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+
+        const targetAspect = 1200 / 900;
+        const sourceAspect = vW / vH;
+
+        let srcW = vW, srcH = vH, srcX = 0, srcY = 0;
+        if (sourceAspect > targetAspect) {
+          srcH = vH;
+          srcW = vH * targetAspect;
+          srcX = (vW - srcW) / 2;
+          srcY = 0;
+        } else {
+          srcW = vW;
+          srcH = vW / targetAspect;
+          srcX = 0;
+          srcY = (vH - srcH) / 2;
+        }
+
+        ctx.drawImage(videoRef.current, srcX, srcY, srcW, srcH, 0, 0, 1200, 900);
+        bgDataUrl = canvas.toDataURL('image/jpeg', 0.9);
       } catch (err) {
         console.error("Error capturing video frame:", err);
       }
@@ -214,58 +369,117 @@ export default function Photos() {
 
     if (!bgDataUrl) {
       const canvas = document.createElement('canvas');
-      canvas.width = 640;
-      canvas.height = 480;
+      canvas.width = 1200;
+      canvas.height = 900;
       const ctx = canvas.getContext('2d');
-      const grad = ctx.createLinearGradient(0, 0, 640, 480);
+      const grad = ctx.createLinearGradient(0, 0, 1200, 900);
       grad.addColorStop(0, '#f8bbd0');
       grad.addColorStop(1, '#f48fb1');
       ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, 640, 480);
-      bgDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      ctx.fillRect(0, 0, 1200, 900);
+      bgDataUrl = canvas.toDataURL('image/jpeg', 0.9);
     }
 
-    // Save photo to DB/localStorage
-    await savePhoto(userId, {
-      bg: bgDataUrl,
-      equippedItems: activeFrogState.equippedItems || [],
-      equippedItem: activeFrogState.equippedItem || 'base',
-      hunger: activeFrogState.hunger,
-      petName: gameState.petName,
-      stickerPos: stickerPos
-    });
+    const compositeDataUrl = await createSingleCompositePhoto(bgDataUrl, stickerPos, activeFrogState);
 
-    setView('album');
+    const photoPayload = {
+      id: Date.now().toString(),
+      bg: compositeDataUrl,
+      petName: gameState.petName || 'Froggy',
+      date: new Date().toISOString()
+    };
+
+    // 2. IMMEDIATELY show captured preview card overlay over viewport (GUARANTEED feedback!)
+    setCapturedPreview(photoPayload);
+
+    if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+    previewTimerRef.current = setTimeout(() => {
+      setCapturedPreview(null);
+    }, 4500);
+
+    // 3. Save photo asynchronously in background
+    try {
+      await savePhoto(userId, photoPayload);
+      loadPhotos();
+    } catch (saveErr) {
+      console.error("Error saving photo to DB:", saveErr);
+    }
   };
 
   const downloadPhoto = async (photoId, e) => {
     if (e) e.stopPropagation();
-    const element = document.getElementById(`photo-${photoId}`);
-    if (!element) return;
     
-    const dateLabel = document.getElementById(`date-${photoId}`);
-    if (dateLabel) dateLabel.style.display = 'none';
+    const targetPhoto = photos.find(p => p.id === photoId) || selectedPhoto || capturedPreview;
+    if (!targetPhoto) return;
+    
+    setIsDownloading(true);
 
     try {
-      const canvas = await html2canvas(element, { useCORS: true, backgroundColor: null });
-      const link = document.createElement('a');
-      link.download = `froggy_photo_${photoId}.jpg`;
-      link.href = canvas.toDataURL('image/jpeg', 0.9);
-      link.click();
+      // Use single merged composite PNG photo directly
+      const dataUrl = (targetPhoto.bg && targetPhoto.bg.startsWith('data:image/png'))
+        ? targetPhoto.bg 
+        : await createSingleCompositePhoto(targetPhoto.bg, targetPhoto.stickerPos, targetPhoto);
+
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || ('ontouchstart' in window && window.innerWidth < 1024);
+
+      if (isMobile) {
+        // Mobile devices (iOS Safari / Android): attempt native share sheet for Camera Roll, or fallback to mobile modal
+        let sharedSuccessfully = false;
+        if (blob && navigator.canShare) {
+          try {
+            const file = new File([blob], `froggy_photo_${photoId}.png`, { type: 'image/png' });
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({
+                files: [file],
+                title: 'Froggy Photo',
+                text: 'Check out my froggy photo!'
+              });
+              sharedSuccessfully = true;
+            }
+          } catch (shareErr) {
+            if (shareErr.name === 'AbortError') {
+              sharedSuccessfully = true;
+            } else {
+              console.warn("Web Share API failed, falling back to download modal:", shareErr);
+            }
+          }
+        }
+
+        if (!sharedSuccessfully) {
+          setMobileSaveModalUrl(dataUrl);
+        }
+      } else {
+        // Desktop browsers (macOS / Windows): trigger direct file download to Downloads folder
+        const link = document.createElement('a');
+        link.download = `froggy_photo_${photoId}.png`;
+        link.href = dataUrl;
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(() => document.body.removeChild(link), 150);
+      }
     } catch (err) {
       console.error("Failed to download photo", err);
     } finally {
-      if (dateLabel) dateLabel.style.display = 'block';
+      setIsDownloading(false);
     }
   };
 
   const handleDelete = async (photoId, e) => {
     if (e) e.stopPropagation();
-    await deletePhoto(userId, photoId);
+
+    const targetPhoto = photos.find(p => p.id === photoId) || selectedPhoto;
+
+    // Optimistically remove deleted photo from UI state immediately
+    setPhotos(prev => prev.filter(p => p.id !== photoId && p.date !== targetPhoto?.date && p.bg !== targetPhoto?.bg));
+
     if (selectedPhoto?.id === photoId) {
       setSelectedIndex(null);
     }
-    loadPhotos();
+
+    await deletePhoto(userId, photoId, targetPhoto);
   };
 
   const handlePrev = (e) => {
@@ -413,8 +627,8 @@ export default function Photos() {
                 position: 'absolute', 
                 top: `${stickerPos.y}%`, 
                 left: `${stickerPos.x}%`,
-                width: '140px',
-                height: '140px',
+                width: '28%',
+                aspectRatio: '1/1',
                 zIndex: 20,
                 cursor: isDragging ? 'grabbing' : 'grab',
                 filter: isDragging ? 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' : 'none',
@@ -438,6 +652,99 @@ export default function Photos() {
                 Drag
               </div>
             </div>
+
+            {/* Instant Photo Capture Preview Overlay Centered inside Viewport */}
+            {capturedPreview && (
+              <div style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundColor: 'rgba(0, 0, 0, 0.72)',
+                zIndex: 85,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justify: 'center',
+                padding: '0.75rem',
+                backdropFilter: 'blur(3px)'
+              }}>
+                <div style={{
+                  backgroundColor: 'var(--window-bg)',
+                  borderRadius: '12px',
+                  border: '3px solid var(--window-border-dark)',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                  padding: '0.85rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '0.6rem',
+                  maxWidth: '90%',
+                  textAlign: 'center',
+                  boxSizing: 'border-box'
+                }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '1.05rem', color: 'var(--text-primary)' }}>
+                    Photo Captured!
+                  </div>
+                  
+                  {/* Photo Preview Thumbnail */}
+                  <div style={{
+                    position: 'relative',
+                    width: '180px',
+                    aspectRatio: '4/3',
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    border: '2px solid var(--window-border-dark)',
+                    backgroundColor: '#000',
+                    boxShadow: '0 3px 8px rgba(0,0,0,0.2)'
+                  }}>
+                    <img src={capturedPreview.bg} alt="Captured Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.4rem', width: '100%', justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <button
+                      className="btn"
+                      onClick={() => downloadPhoto(capturedPreview.id)}
+                      style={{
+                        fontSize: '0.8rem',
+                        padding: '0.35rem 0.75rem',
+                        backgroundColor: 'var(--window-title-bg)',
+                        color: 'var(--window-title-text)',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      Save Photo
+                    </button>
+                    <button
+                      className="btn"
+                      onClick={() => {
+                        setView('album');
+                        setCapturedPreview(null);
+                      }}
+                      style={{
+                        fontSize: '0.8rem',
+                        padding: '0.35rem 0.85rem',
+                        backgroundColor: 'var(--window-title-bg)',
+                        color: 'var(--window-title-text)',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      View Album
+                    </button>
+                    <button
+                      className="btn"
+                      onClick={() => setCapturedPreview(null)}
+                      style={{
+                        fontSize: '0.8rem',
+                        padding: '0.35rem 0.85rem',
+                        backgroundColor: 'var(--button-bg)',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      Take Another
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           
           {/* Frog Sticker Choice Selector */}
@@ -591,6 +898,91 @@ export default function Photos() {
           <p style={{ marginTop: '0.75rem', fontSize: '0.9rem', color: 'var(--text-color)', textAlign: 'center' }}>
             Drag {gameState.petName} to position your sticker, pick a style, and snap your photo!
           </p>
+
+          {/* Instant Photo Capture Preview Notification Card */}
+          {capturedPreview && (
+            <div style={{
+              marginTop: '0.75rem',
+              width: '100%',
+              maxWidth: '500px',
+              backgroundColor: 'var(--window-bg)',
+              borderRadius: '12px',
+              border: '3px solid var(--window-border-dark)',
+              boxShadow: '0 6px 16px rgba(0,0,0,0.18)',
+              padding: '0.6rem 0.85rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '0.75rem',
+              boxSizing: 'border-box'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', overflow: 'hidden' }}>
+                <div style={{
+                  position: 'relative',
+                  width: '68px',
+                  height: '50px',
+                  borderRadius: '6px',
+                  overflow: 'hidden',
+                  border: '2px solid var(--window-border-dark)',
+                  flexShrink: 0,
+                  backgroundColor: '#000'
+                }}>
+                  <img src={capturedPreview.bg} alt="Captured Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  {/* Only render legacy overlay if image is not a pre-merged PNG composite */}
+                  {capturedPreview.stickerPos && capturedPreview.bg && !capturedPreview.bg.startsWith('data:image/png') && (
+                    <div style={{
+                      position: 'absolute',
+                      top: `${capturedPreview.stickerPos.y}%`,
+                      left: `${capturedPreview.stickerPos.x}%`,
+                      width: '140px',
+                      height: '140px',
+                      transform: 'scale(0.24)',
+                      transformOrigin: 'top left'
+                    }}>
+                      <FrogAvatar gameState={capturedPreview} />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <div style={{ fontWeight: 'bold', fontSize: '0.92rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    <span>Photo Captured!</span>
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary, #555)' }}>Added to your frog album</span>
+                </div>
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
+                <button
+                  className="btn"
+                  onClick={() => {
+                    setView('album');
+                    setCapturedPreview(null);
+                  }}
+                  style={{
+                    fontSize: '0.8rem',
+                    padding: '0.35rem 0.75rem',
+                    backgroundColor: 'var(--window-title-bg)',
+                    color: 'var(--window-title-text)',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  View Album
+                </button>
+                <button
+                  className="btn"
+                  onClick={() => setCapturedPreview(null)}
+                  title="Dismiss preview"
+                  style={{
+                    fontSize: '0.8rem',
+                    padding: '0.35rem 0.6rem',
+                    backgroundColor: 'var(--button-bg)'
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -632,7 +1024,7 @@ export default function Photos() {
               photos.map((photo, index) => (
                 <div 
                   key={photo.id}
-                  id={`photo-${photo.id}`}
+                  id={`photo-thumb-${photo.id}`}
                   onClick={() => setSelectedIndex(index)}
                   title="Click to enlarge & view options!"
                   style={{ 
@@ -647,17 +1039,19 @@ export default function Photos() {
                     transition: 'transform 0.15s ease'
                   }}>
                   <img src={photo.bg} alt="Background" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <div style={{ 
-                    position: 'absolute', 
-                    bottom: photo.stickerPos ? `${photo.stickerPos.y}%` : '5%', 
-                    left: photo.stickerPos ? `${photo.stickerPos.x}%` : '65%',
-                    width: '140px',
-                    height: '140px',
-                    transformOrigin: 'bottom right',
-                    transform: 'scale(0.5)'
-                  }}>
-                    <FrogAvatar gameState={photo} />
-                  </div>
+                  {/* Render Frog Sticker overlay for photos that store stickerPos */}
+                  {photo.stickerPos && (
+                    <div style={{ 
+                      position: 'absolute', 
+                      top: `${photo.stickerPos.y}%`, 
+                      left: `${photo.stickerPos.x}%`,
+                      width: '28%',
+                      aspectRatio: '1/1',
+                      pointerEvents: 'none'
+                    }}>
+                      <FrogAvatar gameState={photo} />
+                    </div>
+                  )}
                   <div 
                     id={`date-${photo.id}`}
                     style={{
@@ -721,7 +1115,7 @@ export default function Photos() {
 
             {/* Modal Photo Frame with Left/Right Nav Arrows */}
             <div 
-              id={`photo-${selectedPhoto.id}`}
+              id={`photo-modal-${selectedPhoto.id}`}
               style={{ 
                 position: 'relative', 
                 width: '100%', 
@@ -796,15 +1190,19 @@ export default function Photos() {
                 alt="Full Size Photo" 
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
               />
-              <div style={{ 
-                position: 'absolute', 
-                bottom: selectedPhoto.stickerPos ? `${selectedPhoto.stickerPos.y}%` : '5%', 
-                left: selectedPhoto.stickerPos ? `${selectedPhoto.stickerPos.x}%` : '65%',
-                width: '140px',
-                height: '140px'
-              }}>
-                <FrogAvatar gameState={selectedPhoto} />
-              </div>
+              {/* Render Frog Sticker overlay for photos that store stickerPos */}
+              {selectedPhoto.stickerPos && (
+                <div style={{ 
+                  position: 'absolute', 
+                  top: `${selectedPhoto.stickerPos.y}%`, 
+                  left: `${selectedPhoto.stickerPos.x}%`,
+                  width: '28%',
+                  aspectRatio: '1/1',
+                  pointerEvents: 'none'
+                }}>
+                  <FrogAvatar gameState={selectedPhoto} />
+                </div>
+              )}
             </div>
 
             {/* Modal Action Controls Bar (Matching Light Purple Theme) */}
@@ -812,11 +1210,12 @@ export default function Photos() {
               {/* Centered Download Pixel Image Button */}
               <button 
                 className="btn"
+                disabled={isDownloading}
                 onClick={(e) => {
                   downloadPhoto(selectedPhoto.id, e);
                   setDownloadedPhotos(prev => ({ ...prev, [selectedPhoto.id]: true }));
                 }}
-                title="Download Photo to Device"
+                title={isDownloading ? "Preparing photo..." : "Download Photo / Save to Camera Roll"}
                 style={{
                   backgroundColor: downloadedPhotos[selectedPhoto.id] ? 'var(--button-active)' : 'var(--button-bg)',
                   filter: downloadedPhotos[selectedPhoto.id] ? 'brightness(0.82)' : 'none',
@@ -828,14 +1227,19 @@ export default function Photos() {
                   justify: 'center',
                   lineHeight: 0,
                   boxSizing: 'border-box',
-                  transition: 'all 0.15s ease'
+                  transition: 'all 0.15s ease',
+                  opacity: isDownloading ? 0.6 : 1
                 }}
               >
-                <img 
-                  src="/assets/pixel_download.png" 
-                  alt="Download" 
-                  style={{ width: '24px', height: '24px', imageRendering: 'pixelated', objectFit: 'contain', display: 'block', margin: 'auto' }} 
-                />
+                {isDownloading ? (
+                  <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>...</span>
+                ) : (
+                  <img 
+                    src="/assets/pixel_download.png" 
+                    alt="Download" 
+                    style={{ width: '24px', height: '24px', imageRendering: 'pixelated', objectFit: 'contain', display: 'block', margin: 'auto' }} 
+                  />
+                )}
               </button>
 
               {/* Centered Delete Trashcan Pixel Image Button */}
@@ -861,6 +1265,151 @@ export default function Photos() {
                   alt="Delete" 
                   style={{ width: '24px', height: '24px', imageRendering: 'pixelated', objectFit: 'contain', display: 'block', margin: 'auto' }} 
                 />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Long-Press Save Image Modal Fallback */}
+      {mobileSaveModalUrl && (
+        <div 
+          onClick={() => setMobileSaveModalUrl(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            zIndex: 2000,
+            display: 'flex',
+            alignItems: 'center',
+            justify: 'center',
+            padding: '1rem'
+          }}
+        >
+          <div 
+            className="window"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '460px',
+              backgroundColor: 'var(--window-bg)',
+              borderRadius: '14px',
+              overflow: 'hidden',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              padding: '1.25rem',
+              textAlign: 'center',
+              boxSizing: 'border-box'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                Save to Camera Roll
+              </h3>
+              <button 
+                className="btn"
+                onClick={() => setMobileSaveModalUrl(null)}
+                style={{ padding: '0.2rem 0.6rem', fontSize: '0.9rem' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <p style={{ 
+              fontSize: '0.85rem', 
+              color: 'var(--text-primary)', 
+              marginBottom: '0.75rem', 
+              backgroundColor: 'var(--primary-light)', 
+              padding: '0.6rem 0.75rem', 
+              borderRadius: '8px', 
+              border: '1px solid var(--window-border-dark)',
+              lineHeight: 1.4
+            }}>
+              <strong>Tap & hold</strong> the photo below, then select <strong>"Add to Photos"</strong> or <strong>"Save Image"</strong> to save to your camera roll!
+            </p>
+
+            <div style={{ 
+              width: '100%', 
+              maxHeight: '60vh', 
+              borderRadius: '10px', 
+              overflow: 'hidden', 
+              border: '3px solid var(--window-border-dark)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              marginBottom: '1rem',
+              backgroundColor: '#000',
+              display: 'flex',
+              alignItems: 'center',
+              justify: 'center'
+            }}>
+              <img 
+                src={mobileSaveModalUrl} 
+                alt="Save to Camera Roll" 
+                style={{ 
+                  maxWidth: '100%', 
+                  maxHeight: '60vh', 
+                  width: 'auto', 
+                  height: 'auto', 
+                  objectFit: 'contain', 
+                  display: 'block', 
+                  margin: 'auto', 
+                  userSelect: 'auto', 
+                  WebkitUserSelect: 'auto' 
+                }} 
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', alignItems: 'center', width: '100%', flexWrap: 'wrap' }}>
+              <button
+                className="btn"
+                onClick={() => {
+                  const newWindow = window.open();
+                  if (newWindow) {
+                    newWindow.document.write(`<html><head><title>Froggy Photo</title></head><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh;"><img src="${mobileSaveModalUrl}" style="max-width:100%;height:auto;" /></body></html>`);
+                  } else {
+                    window.location.href = mobileSaveModalUrl;
+                  }
+                }}
+                style={{
+                  fontSize: '0.85rem',
+                  padding: '0.6rem 1.2rem',
+                  backgroundColor: 'var(--window-title-bg)',
+                  color: 'var(--window-title-text)',
+                  fontWeight: 'bold'
+                }}
+              >
+                Open Full Image (Hold to Save)
+              </button>
+              <a 
+                href={mobileSaveModalUrl} 
+                download="froggy_photo.png"
+                className="btn"
+                title="Download Photo File"
+                style={{
+                  backgroundColor: 'var(--button-bg)',
+                  width: '48px',
+                  height: '48px',
+                  padding: 0,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justify: 'center',
+                  lineHeight: 0,
+                  boxSizing: 'border-box'
+                }}
+              >
+                <img 
+                  src="/assets/pixel_download.png" 
+                  alt="Download" 
+                  style={{ width: '24px', height: '24px', imageRendering: 'pixelated', objectFit: 'contain', display: 'block', margin: 'auto' }} 
+                />
+              </a>
+              <button
+                className="btn"
+                onClick={() => setMobileSaveModalUrl(null)}
+                style={{ padding: '0.6rem 1.2rem', fontSize: '0.9rem', fontWeight: 'bold', height: '48px' }}
+              >
+                Done
               </button>
             </div>
           </div>
