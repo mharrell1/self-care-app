@@ -46,37 +46,23 @@ export default function PetView() {
         </div>
 
         {isSleeping && (
-          <>
-            <div style={{
-              position: 'absolute',
-              top: '6px',
-              right: '8px',
-              fontSize: '0.85rem',
-              fontWeight: 'bold',
-              color: '#fff',
-              textShadow: '1px 1px 3px #000, 0 0 8px #9c27b0',
-              pointerEvents: 'none'
-            }}>
-              💤 Zzz...
-            </div>
-            <div style={{
-              position: 'absolute',
-              bottom: '6px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              backgroundColor: 'rgba(30, 15, 50, 0.85)',
-              color: '#e1bee7',
-              fontSize: '0.65rem',
-              padding: '2px 8px',
-              borderRadius: '10px',
-              border: '1px solid #ab47bc',
-              whiteSpace: 'nowrap',
-              fontWeight: 'bold',
-              pointerEvents: 'none'
-            }}>
-              Sleeping in Bed 🌙
-            </div>
-          </>
+          <div style={{
+            position: 'absolute',
+            bottom: '6px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: 'rgba(30, 15, 50, 0.85)',
+            color: '#e1bee7',
+            fontSize: '0.65rem',
+            padding: '2px 8px',
+            borderRadius: '10px',
+            border: '1px solid #ab47bc',
+            whiteSpace: 'nowrap',
+            fontWeight: 'bold',
+            pointerEvents: 'none'
+          }}>
+            Sleeping in Bed
+          </div>
         )}
       </div>
 
@@ -90,7 +76,7 @@ export default function PetView() {
       </div>
 
       <h2 style={{ color: 'var(--primary-color)', textShadow: '1px 1px 0px #fff', marginTop: '0.5rem' }}>
-        {gameState.petName} {isSleeping ? '💤' : ''}
+        {gameState.petName}
       </h2>
       
       <div style={{

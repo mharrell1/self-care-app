@@ -97,7 +97,7 @@ export default function Dashboard() {
             color: gameState.medicationTaken ? 'var(--window-title-text)' : 'var(--text-primary)'
           }}
         >
-          {gameState.medicationTaken ? 'Medicine Taken ✓' : 'Medicine 💊'}
+          {gameState.medicationTaken ? 'Medicine Taken ✓' : 'Medicine'}
         </button>
         <button 
           className="btn" 
@@ -107,7 +107,7 @@ export default function Dashboard() {
             color: gameState.isSleeping ? 'var(--window-title-text)' : 'var(--text-primary)'
           }}
         >
-          {gameState.isSleeping ? 'Wake Up ☀️' : 'Bedtime 🌙'}
+          {gameState.isSleeping ? 'Wake Up' : 'Bedtime'}
         </button>
       </div>
 
