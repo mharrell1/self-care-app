@@ -129,48 +129,6 @@ export default function Dashboard() {
             ))}
           </div>
         </div>
-
-        {/* Developer / Testing Tools */}
-        <div style={{ marginTop: '1.5rem', borderTop: '2px dashed var(--window-border-light)', paddingTop: '0.5rem' }}>
-          <h3 style={{ fontFamily: 'var(--header-font)', fontSize: '0.8rem', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Developer Tools</h3>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-            <button 
-              className="btn" 
-              style={{ padding: '0.3rem 0.6rem', fontSize: '0.85rem' }}
-              onClick={async () => {
-                const backdatedTime = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
-                await updateGameState({ lastInteraction: backdatedTime });
-                window.location.reload();
-              }}
-            >
-              Simulate 24h Inactivity
-            </button>
-            <button 
-              className="btn" 
-              style={{ padding: '0.3rem 0.6rem', fontSize: '0.85rem' }}
-              onClick={async () => {
-                const backdatedTime = new Date(Date.now() - 49 * 60 * 60 * 1000).toISOString();
-                await updateGameState({ lastInteraction: backdatedTime });
-                window.location.reload();
-              }}
-            >
-              Simulate 48h Inactivity
-            </button>
-            <button 
-              className="btn" 
-              style={{ padding: '0.3rem 0.6rem', fontSize: '0.85rem', backgroundColor: '#ffcdd2', color: '#c62828' }}
-              onClick={async () => {
-                await updateGameState({
-                  happiness: 0,
-                  hunger: 0,
-                  cleanliness: 0
-                });
-              }}
-            >
-              Drain Stats to 0
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );
