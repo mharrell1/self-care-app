@@ -1,10 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGame } from '../context/GameContext';
+import { getJournalEntries, getMoodHistory } from '../services/db';
 
 export default function Stats() {
-  const { gameState, updateGameState } = useGame();
+  const { userId, gameState, updateGameState } = useGame();
   const [selectedDayLog, setSelectedDayLog] = useState(null);
   const [viewMode, setViewMode] = useState('calendar'); // 'calendar' | 'analytics'
+  const [journalEntries, setJournalEntries] = useState([]);
+  const [moodHistory, setMoodHistory] = useState([]);
+
+  useEffect(() => {
+    if (userId) {
+      getJournalEntries(userId).then(entries => setJournalEntries(entries || []));
+      getMoodHistory(userId).then(moods => setMoodHistory(moods || []));
+    }
+  }, [userId]);
 
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
@@ -47,22 +57,31 @@ export default function Stats() {
     const dateObj = new Date(currentYear, currentMonth, dayNum);
     const dateDisplay = dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
     
-    // Fetch journal entries from localStorage/gameState if available
-    let journalEntry = null;
-    try {
-      const storedJournals = localStorage.getItem(`journals_${dateISO}`);
-      if (storedJournals) journalEntry = JSON.parse(storedJournals);
-    } catch(e) {}
+    // Find journal entries for this date
+    const dayJournals = journalEntries.filter(entry => {
+      if (!entry.date) return false;
+      const d = new Date(entry.date);
+      return d.getFullYear() === currentYear && d.getMonth() === currentMonth && d.getDate() === dayNum;
+    });
 
-    const moodLog = gameState?.dailyMoodLogs?.[dateISO] || (activeDays.includes(dateISO) ? "Happy" : "No mood recorded");
+    // Find mood for this date (check gameState.dailyMoodLogs first, then moodHistory)
+    let dayMood = gameState?.dailyMoodLogs?.[dateISO];
+    if (!dayMood) {
+      const foundMood = moodHistory.slice().reverse().find(m => {
+        if (!m.date) return false;
+        const d = new Date(m.date);
+        return d.getFullYear() === currentYear && d.getMonth() === currentMonth && d.getDate() === dayNum;
+      });
+      if (foundMood) dayMood = foundMood.mood;
+    }
 
     setSelectedDayLog({
       dayNum,
       dateISO,
       dateDisplay,
-      isActive: activeDays.includes(dateISO),
-      mood: moodLog,
-      journal: journalEntry
+      isActive: activeDays.includes(dateISO) || dayJournals.length > 0 || !!dayMood,
+      mood: dayMood || (activeDays.includes(dateISO) ? "Happy" : "No mood recorded"),
+      journals: dayJournals
     });
   };
 
@@ -479,10 +498,14 @@ export default function Stats() {
 
               <div style={{ marginBottom: '0.75rem', borderTop: '1px dashed var(--window-border)', paddingTop: '0.5rem' }}>
                 <strong>Journal Entries: </strong>
-                {selectedDayLog.journal ? (
-                  <p style={{ fontStyle: 'italic', backgroundColor: 'var(--bg-color)', padding: '0.5rem', borderRadius: '4px', marginTop: '0.3rem' }}>
-                    "{selectedDayLog.journal.text || selectedDayLog.journal}"
-                  </p>
+                {selectedDayLog.journals && selectedDayLog.journals.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.35rem' }}>
+                    {selectedDayLog.journals.map((j, i) => (
+                      <div key={j.id || i} style={{ fontStyle: 'italic', backgroundColor: 'var(--bg-color)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--window-border)' }}>
+                        "{j.content || j.text}"
+                      </div>
+                    ))}
+                  </div>
                 ) : (
                   <p style={{ color: '#777', marginTop: '0.2rem' }}>No journal entry recorded for this day.</p>
                 )}
