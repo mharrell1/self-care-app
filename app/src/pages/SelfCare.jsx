@@ -600,6 +600,75 @@ export default function SelfCare() {
 
       <hr style={{ borderTop: '2px dashed var(--window-border-light)', margin: '0.5rem 0' }} />
 
+      {/* Water Intake Tracker */}
+      <div style={{ marginBottom: '0.5rem', textAlign: 'center' }}>
+        <h3 style={{ fontFamily: 'var(--header-font)', fontSize: '0.8rem', marginBottom: '0.25rem' }}>Water Intake Tracker</h3>
+        <p style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>Track your daily hydration (Goal: 8 Cups)</p>
+        
+        <div style={{
+          backgroundColor: '#fff',
+          border: '2px solid var(--window-border-dark)',
+          borderRadius: '5px',
+          padding: '0.75rem',
+          marginBottom: '0.5rem'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.35rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+            {[1, 2, 3, 4, 5, 6, 7, 8].map(cupNum => {
+              const isFilled = (gameState?.waterCount || 0) >= cupNum;
+              return (
+                <div 
+                  key={cupNum}
+                  style={{
+                    width: '28px',
+                    height: '34px',
+                    border: '2px solid var(--window-border-dark)',
+                    borderRadius: '0 0 6px 6px',
+                    backgroundColor: isFilled ? '#4fc3f7' : '#e0e0e0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold',
+                    color: isFilled ? '#fff' : '#757575',
+                    boxShadow: isFilled ? '0 2px 4px rgba(3,169,244,0.3)' : 'none',
+                    transition: 'all 0.2s ease'
+                  }}
+                  title={`Cup ${cupNum}`}
+                >
+                  {isFilled ? '💧' : cupNum}
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{ fontSize: '0.95rem', fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
+            {gameState?.waterCount || 0} / 8 Cups Drunk Today
+          </div>
+
+          <button 
+            className="btn" 
+            onClick={() => {
+              const todayStr = new Date().toLocaleDateString();
+              let currentCount = gameState?.waterCount || 0;
+              if (gameState?.lastWaterDate !== todayStr) {
+                currentCount = 0;
+              }
+              updateGameState({
+                waterCount: currentCount + 1,
+                lastWaterDate: todayStr,
+                cleanliness: Math.min(100, (gameState?.cleanliness ?? 50) + 10),
+                happiness: Math.min(100, (gameState?.happiness ?? 50) + 5)
+              });
+            }}
+            style={{ padding: '0.3rem 1rem', fontSize: '0.9rem', fontWeight: 'bold' }}
+          >
+            + Drink 1 Cup 💧
+          </button>
+        </div>
+      </div>
+
+      <hr style={{ borderTop: '2px dashed var(--window-border-light)', margin: '0.5rem 0' }} />
+
       {/* Breathing */}
       <div style={{ marginBottom: '0.5rem', textAlign: 'center' }}>
         <h3 style={{ fontFamily: 'var(--header-font)', fontSize: '0.8rem', marginBottom: '0.5rem' }}>Breathing Exercise</h3>

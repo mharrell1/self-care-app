@@ -87,7 +87,7 @@ export default function Dashboard() {
           className="btn" 
           onClick={handleDrinkWater}
         >
-          Water ({gameState.waterCount || 0} Cups)
+          Water
         </button>
         <button 
           className="btn" 
