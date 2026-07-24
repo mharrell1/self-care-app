@@ -39,6 +39,31 @@ export default function Dashboard() {
     });
   };
 
+  const handleMedicine = () => {
+    const todayStr = new Date().toLocaleDateString();
+    const isTaken = !gameState.medicationTaken;
+    updateGameState({
+      medicationTaken: isTaken,
+      lastMedicineDate: todayStr,
+      health: isTaken ? 100 : gameState.health,
+      happiness: isTaken ? Math.min(100, (gameState.happiness ?? 50) + 15) : gameState.happiness
+    });
+  };
+
+  const handleBedtime = () => {
+    const newSleeping = !gameState.isSleeping;
+    const updates = {
+      isSleeping: newSleeping
+    };
+    if (newSleeping) {
+      updates.health = 100;
+      updates.happiness = 100;
+      updates.hunger = Math.min(100, (gameState.hunger ?? 50) + 25);
+      updates.cleanliness = Math.min(100, (gameState.cleanliness ?? 50) + 25);
+    }
+    updateGameState(updates);
+  };
+
   return (
     <div>
       <PetView />
@@ -56,13 +81,33 @@ export default function Dashboard() {
           onClick={handlePlay}
           disabled={gameState.happiness >= 100}
         >
-          Play (Free)
+          Play
         </button>
         <button 
           className="btn" 
           onClick={handleDrinkWater}
         >
-          Drink Water ({gameState.waterCount || 0} Cups)
+          Water ({gameState.waterCount || 0} Cups)
+        </button>
+        <button 
+          className="btn" 
+          onClick={handleMedicine}
+          style={{
+            backgroundColor: gameState.medicationTaken ? 'var(--window-title-bg)' : 'var(--button-bg)',
+            color: gameState.medicationTaken ? 'var(--window-title-text)' : 'var(--text-primary)'
+          }}
+        >
+          {gameState.medicationTaken ? 'Medicine Taken ✓' : 'Medicine 💊'}
+        </button>
+        <button 
+          className="btn" 
+          onClick={handleBedtime}
+          style={{
+            backgroundColor: gameState.isSleeping ? 'var(--window-title-bg)' : 'var(--button-bg)',
+            color: gameState.isSleeping ? 'var(--window-title-text)' : 'var(--text-primary)'
+          }}
+        >
+          {gameState.isSleeping ? 'Wake Up ☀️' : 'Bedtime 🌙'}
         </button>
       </div>
 

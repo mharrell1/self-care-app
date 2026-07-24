@@ -28,6 +28,9 @@ export const getGameState = async (userId) => {
       hunger: 50,
       happiness: 50,
       cleanliness: 50,
+      health: 100,
+      medicationTaken: false,
+      isSleeping: false,
       equippedItem: 'base',
       unlockedItems: ['base']
     };
@@ -46,6 +49,9 @@ export const getGameState = async (userId) => {
     hunger: 50,
     happiness: 50,
     cleanliness: 50,
+    health: 100,
+    medicationTaken: false,
+    isSleeping: false,
     equippedItem: 'base',
     equippedItems: [],
     unlockedItems: ['base']

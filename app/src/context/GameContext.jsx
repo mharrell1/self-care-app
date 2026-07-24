@@ -39,6 +39,17 @@ export function GameProvider({ children }) {
             needsSave = true;
           }
 
+          if (updatedState.lastMedicineDate !== todayStr) {
+            updatedState.medicationTaken = false;
+            updatedState.lastMedicineDate = todayStr;
+            needsSave = true;
+          }
+
+          if (updatedState.health === undefined) {
+            updatedState.health = 100;
+            needsSave = true;
+          }
+
           if (updatedState.checklistLastResetDate !== todayStr) {
             const currentChecklist = updatedState.checklist !== undefined ? updatedState.checklist : [
               { id: '1', text: 'Drink a glass of water', completed: false },
@@ -63,6 +74,7 @@ export function GameProvider({ children }) {
               updatedState.happiness = Math.max(0, (updatedState.happiness ?? 50) - penalty);
               updatedState.hunger = Math.max(0, (updatedState.hunger ?? 50) - penalty);
               updatedState.cleanliness = Math.max(0, (updatedState.cleanliness ?? 50) - penalty);
+              updatedState.health = Math.max(0, (updatedState.health ?? 100) - penalty);
             }
             // Opening the app counts as a check-in, so we reset the lastInteraction time to now
             updatedState.lastInteraction = now.toISOString();
