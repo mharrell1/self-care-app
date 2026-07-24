@@ -623,19 +623,19 @@ export default function SelfCare() {
                     height: '34px',
                     border: '2px solid var(--window-border-dark)',
                     borderRadius: '0 0 6px 6px',
-                    backgroundColor: isFilled ? '#4fc3f7' : '#e0e0e0',
+                    backgroundColor: isFilled ? 'var(--window-title-bg)' : '#e0e0e0',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: '0.75rem',
                     fontWeight: 'bold',
-                    color: isFilled ? '#fff' : '#757575',
-                    boxShadow: isFilled ? '0 2px 4px rgba(3,169,244,0.3)' : 'none',
+                    color: isFilled ? 'var(--window-title-text)' : '#757575',
+                    boxShadow: isFilled ? '0 2px 4px rgba(0,0,0,0.15)' : 'none',
                     transition: 'all 0.2s ease'
                   }}
                   title={`Cup ${cupNum}`}
                 >
-                  {isFilled ? '💧' : cupNum}
+                  {cupNum}
                 </div>
               );
             })}
@@ -662,7 +662,7 @@ export default function SelfCare() {
             }}
             style={{ padding: '0.3rem 1rem', fontSize: '0.9rem', fontWeight: 'bold' }}
           >
-            + Drink 1 Cup 💧
+            + Drink 1 Cup
           </button>
         </div>
       </div>
