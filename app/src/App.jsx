@@ -7,6 +7,7 @@ import Games from './pages/Games';
 import SelfCare from './pages/SelfCare';
 import DressUp from './pages/DressUp';
 import Photos from './pages/Photos';
+import Stats from './pages/Stats';
 import Auth from './components/Auth';
 import { GameProvider } from './context/GameContext';
 import { auth, firebaseConfig } from './firebase';
@@ -50,6 +51,7 @@ function App() {
             <Route path="selfcare" element={<SelfCare />} />
             <Route path="dressup" element={<DressUp />} />
             <Route path="photos" element={<Photos />} />
+            <Route path="stats" element={<Stats />} />
           </Route>
         </Routes>
       </BrowserRouter>

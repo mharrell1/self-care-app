@@ -14,12 +14,13 @@ function Layout() {
 
   const getWindowTitle = () => {
     switch (location.pathname) {
-      case '/': return 'Frogagotchi Dashboard';
+      case '/': return 'Frogagotchi';
       case '/journal': return 'Secret Journal.exe';
       case '/games': return 'Mini Games Collection';
       case '/selfcare': return 'Self Care Zone';
       case '/dressup': return 'Dress Up.exe';
       case '/photos': return 'Photo Booth.exe';
+      case '/stats': return 'Activity & Stats';
       default: return 'Frogagotchi App';
     }
   };
@@ -30,7 +31,8 @@ function Layout() {
     { path: '/dressup', label: 'Dress Up' },
     { path: '/photos', label: 'Photos' },
     { path: '/journal', label: 'Journal' },
-    { path: '/games', label: 'Games' }
+    { path: '/games', label: 'Games' },
+    { path: '/stats', label: 'Stats' }
   ];
 
   return (

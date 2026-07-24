@@ -276,6 +276,7 @@ export default function SelfCare() {
   };
   const [moods, setMoods] = useState([]);
   const [breathingPhase, setBreathingPhase] = useState('idle'); // idle, inhale, hold, exhale
+  const [breatheCycle, setBreatheCycle] = useState(1);
   const [breatheScale, setBreatheScale] = useState(1);
   const [meditationTime, setMeditationTime] = useState(0);
   const [meditationActive, setMeditationActive] = useState(false);
@@ -303,24 +304,44 @@ export default function SelfCare() {
     navigate('/journal');
   };
 
-  // Breathing Exercise Logic
+  // Breathing Exercise Logic (3-Cycle Loop)
+  const startBreathing = () => {
+    setBreatheCycle(1);
+    setBreathingPhase('inhale');
+  };
+
+  const stopBreathing = () => {
+    setBreathingPhase('idle');
+    setBreatheScale(1);
+    setBreatheCycle(1);
+  };
+
   useEffect(() => {
     let timeout;
     if (breathingPhase === 'inhale') {
-      setBreatheScale(1.5);
+      setBreatheScale(1.35);
       timeout = setTimeout(() => setBreathingPhase('hold'), 3000);
     } else if (breathingPhase === 'hold') {
       timeout = setTimeout(() => setBreathingPhase('exhale'), 2000);
     } else if (breathingPhase === 'exhale') {
       setBreatheScale(1);
       timeout = setTimeout(() => {
-        // give small reward
-        updateGameState({ happiness: Math.min(100, gameState.happiness + 5), coins: gameState.coins + 5 });
-        setBreathingPhase('idle');
+        if (breatheCycle < 3) {
+          setBreatheCycle(c => c + 1);
+          setBreathingPhase('inhale');
+        } else {
+          // Finished 3 full cycles!
+          updateGameState({ 
+            happiness: Math.min(100, (gameState.happiness ?? 50) + 15), 
+            coins: (gameState.coins ?? 100) + 15 
+          });
+          setBreathingPhase('idle');
+          setBreatheCycle(1);
+        }
       }, 3000);
     }
     return () => clearTimeout(timeout);
-  }, [breathingPhase]);
+  }, [breathingPhase, breatheCycle]);
 
   // Meditation Logic
   useEffect(() => {
@@ -600,102 +621,6 @@ export default function SelfCare() {
 
       <hr style={{ borderTop: '2px dashed var(--window-border-light)', margin: '0.5rem 0' }} />
 
-      {/* Water Intake Tracker */}
-      <div style={{ marginBottom: '0.5rem', textAlign: 'center' }}>
-        <h3 style={{ fontFamily: 'var(--header-font)', fontSize: '0.8rem', marginBottom: '0.25rem' }}>Water Intake Tracker</h3>
-        <p style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>Track your daily hydration (Goal: 8 Cups)</p>
-        
-        <div style={{
-          backgroundColor: '#fff',
-          border: '2px solid var(--window-border-dark)',
-          borderRadius: '5px',
-          padding: '0.75rem',
-          marginBottom: '0.5rem'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.35rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-            {[1, 2, 3, 4, 5, 6, 7, 8].map(cupNum => {
-              const isFilled = (gameState?.waterCount || 0) >= cupNum;
-              return (
-                <div 
-                  key={cupNum}
-                  style={{
-                    width: '28px',
-                    height: '34px',
-                    border: '2px solid var(--window-border-dark)',
-                    borderRadius: '0 0 6px 6px',
-                    backgroundColor: isFilled ? 'var(--window-title-bg)' : '#e0e0e0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '0.75rem',
-                    fontWeight: 'bold',
-                    color: isFilled ? 'var(--window-title-text)' : '#757575',
-                    boxShadow: isFilled ? '0 2px 4px rgba(0,0,0,0.15)' : 'none',
-                    transition: 'all 0.2s ease'
-                  }}
-                  title={`Cup ${cupNum}`}
-                >
-                  {cupNum}
-                </div>
-              );
-            })}
-          </div>
-
-          <div style={{ fontSize: '0.95rem', fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
-            {gameState?.waterCount || 0} / 8 Cups Drunk Today
-          </div>
-
-          <button 
-            className="btn" 
-            onClick={() => {
-              const todayStr = new Date().toLocaleDateString();
-              let currentCount = gameState?.waterCount || 0;
-              if (gameState?.lastWaterDate !== todayStr) {
-                currentCount = 0;
-              }
-              updateGameState({
-                waterCount: currentCount + 1,
-                lastWaterDate: todayStr,
-                cleanliness: Math.min(100, (gameState?.cleanliness ?? 50) + 10),
-                happiness: Math.min(100, (gameState?.happiness ?? 50) + 5)
-              });
-            }}
-            style={{ padding: '0.3rem 1rem', fontSize: '0.9rem', fontWeight: 'bold' }}
-          >
-            + Drink 1 Cup
-          </button>
-        </div>
-      </div>
-
-      <hr style={{ borderTop: '2px dashed var(--window-border-light)', margin: '0.5rem 0' }} />
-
-      {/* Breathing */}
-      <div style={{ marginBottom: '0.5rem', textAlign: 'center' }}>
-        <h3 style={{ fontFamily: 'var(--header-font)', fontSize: '0.8rem', marginBottom: '0.5rem' }}>Breathing Exercise</h3>
-        
-        <div style={{ margin: '0.5rem auto', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '130px' }}>
-          <img 
-            src="/assets/frog_naked_transparent.png" 
-            alt="Breathing Frog" 
-            style={{
-              width: '120px',
-              marginTop: '0.25rem',
-              transition: 'transform 3s ease-in-out',
-              transform: `scale(${breatheScale})`
-            }} 
-          />
-          <div style={{ marginTop: '0.75rem', fontWeight: 'bold', fontSize: '1rem', textTransform: 'capitalize', color: 'var(--text-primary)' }}>
-            {breathingPhase === 'idle' ? 'Ready' : breathingPhase}
-          </div>
-        </div>
-
-        {breathingPhase === 'idle' && (
-          <button className="btn" onClick={() => setBreathingPhase('inhale')} style={{ padding: '0.25rem 1rem', fontSize: '1rem' }}>Start Breathing</button>
-        )}
-      </div>
-
-      <hr style={{ borderTop: '2px dashed var(--window-border-light)', margin: '0.5rem 0' }} />
-
       {/* Daily Checklist */}
       <div style={{ marginBottom: '0.5rem' }}>
         <h3 style={{ fontFamily: 'var(--header-font)', fontSize: '0.8rem', marginBottom: '0.5rem', textAlign: 'center' }}>Daily Checklist</h3>
@@ -789,6 +714,64 @@ export default function SelfCare() {
             Add
           </button>
         </form>
+      </div>
+
+      <hr style={{ borderTop: '2px dashed var(--window-border-light)', margin: '0.5rem 0' }} />
+
+      {/* Breathing Exercise */}
+      <div style={{ marginBottom: '0.5rem', textAlign: 'center' }}>
+        <h3 style={{ fontFamily: 'var(--header-font)', fontSize: '0.8rem', marginBottom: '0.25rem' }}>Breathing Exercise</h3>
+        
+        <div style={{
+          backgroundColor: '#fff',
+          border: '2px solid var(--window-border-dark)',
+          borderRadius: '5px',
+          padding: '0.75rem',
+          margin: '0 auto',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'all 0.3s ease'
+        }}>
+          <div style={{
+            height: '110px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '100%',
+            overflow: 'visible'
+          }}>
+            <img 
+              src="/assets/frog_naked_tight.png" 
+              alt="Breathing Frog" 
+              style={{
+                width: '58px',
+                display: 'block',
+                margin: '0 auto',
+                transition: 'transform 3s ease-in-out',
+                transform: `scale(${breatheScale})`
+              }} 
+            />
+          </div>
+
+          <div style={{ marginTop: '0.25rem', marginBottom: '0.5rem', fontWeight: 'bold', fontSize: '1rem', textTransform: 'capitalize', color: 'var(--text-primary)' }}>
+            {breathingPhase === 'idle' 
+              ? 'Ready (3 Cycles)' 
+              : `${breathingPhase}... (Cycle ${breatheCycle} of 3)`
+            }
+          </div>
+
+          {breathingPhase === 'idle' ? (
+            <button className="btn" onClick={startBreathing} style={{ padding: '0.25rem 1rem', fontSize: '0.95rem', fontWeight: 'bold' }}>
+              Start Breathing
+            </button>
+          ) : (
+            <button className="btn" onClick={stopBreathing} style={{ padding: '0.25rem 1rem', fontSize: '0.95rem', fontWeight: 'bold', backgroundColor: '#e0e0e0' }}>
+              Stop Exercise
+            </button>
+          )}
+        </div>
       </div>
 
       <hr style={{ borderTop: '2px dashed var(--window-border-light)', margin: '0.5rem 0' }} />

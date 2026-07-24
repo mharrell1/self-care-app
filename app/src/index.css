@@ -204,3 +204,34 @@ input:focus, textarea:focus {
 .shower-rinse {
   animation: rinse 1.5s ease-in-out;
 }
+
+@keyframes floatPixelHeart {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 40px) scale(0.4);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(-50%, 15px) scale(1.1);
+  }
+  75% {
+    opacity: 1;
+    transform: translate(-50%, -15px) scale(1.2);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -30px) scale(0.8);
+  }
+}
+
+.pixel-heart-pop {
+  position: absolute;
+  top: 30px;
+  left: 50%;
+  width: 36px;
+  height: 36px;
+  z-index: 9999;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 6px rgba(255, 64, 129, 0.8));
+  animation: floatPixelHeart 1.5s ease-out forwards;
+}

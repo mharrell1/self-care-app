@@ -3,6 +3,44 @@ import { getGameState, saveGameState } from '../services/db';
 import { auth, firebaseConfig } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 
+const ADVENTURES = [
+  {
+    location: "Mossy Forest",
+    story: "visited the Mossy Forest while you were away!",
+    lesson: "It's okay to take things slow and enjoy the present moment.",
+    coins: 15,
+    happiness: 10
+  },
+  {
+    location: "Starlight Pond",
+    story: "took a peaceful stroll by Starlight Pond and found a shiny river stone.",
+    lesson: "Quiet reflection brings clarity to even the cloudiest thoughts.",
+    coins: 20,
+    happiness: 15
+  },
+  {
+    location: "Lilypad Meadow",
+    story: "relaxed in Lilypad Meadow listening to the soft breeze.",
+    lesson: "Resting isn't quitting—it's preparing for your next big jump!",
+    coins: 15,
+    happiness: 10
+  },
+  {
+    location: "Sunlit Woods",
+    story: "went foraging in the Sunlit Woods and befriended a friendly ladybug.",
+    lesson: "Small everyday discoveries can bring big joy.",
+    coins: 25,
+    happiness: 15
+  },
+  {
+    location: "Whispering Brook",
+    story: "sat beside Whispering Brook and practiced mindful listening.",
+    lesson: "Every storm passes, leaving fresh flowers in its wake.",
+    coins: 20,
+    happiness: 10
+  }
+];
+
 const GameContext = createContext();
 
 export function GameProvider({ children }) {
@@ -33,6 +71,49 @@ export function GameProvider({ children }) {
         if (updatedState) {
           const now = new Date();
           const todayStr = now.toLocaleDateString();
+          const todayISO = now.toISOString().split('T')[0];
+
+          // Active Days tracking
+          let activeDaysList = Array.isArray(updatedState.activeDays) ? [...updatedState.activeDays] : [];
+          if (!activeDaysList.includes(todayISO)) {
+            activeDaysList.push(todayISO);
+            updatedState.activeDays = activeDaysList;
+            needsSave = true;
+          }
+
+          // Streak & Friendship Check-In tracking
+          if (updatedState.lastCheckInDate !== todayISO) {
+            const lastCheckDate = updatedState.lastCheckInDate ? new Date(updatedState.lastCheckInDate) : null;
+            let currentStreak = updatedState.checkInStreak || 0;
+            if (lastCheckDate) {
+              const diffTime = Math.abs(now.getTime() - lastCheckDate.getTime());
+              const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+              if (diffDays === 1) {
+                currentStreak += 1;
+              } else if (diffDays > 1) {
+                currentStreak = 1;
+              }
+            } else {
+              currentStreak = 1;
+            }
+
+            updatedState.checkInStreak = currentStreak;
+            updatedState.lastCheckInDate = todayISO;
+            updatedState.coins = (updatedState.coins || 100) + 15;
+            updatedState.friendshipXP = (updatedState.friendshipXP || 0) + 20;
+            needsSave = true;
+          }
+
+          // Check Friendship Level Up
+          let lvl = updatedState.friendshipLevel || 1;
+          let xp = updatedState.friendshipXP || 0;
+          while (xp >= 100) {
+            lvl += 1;
+            xp -= 100;
+          }
+          updatedState.friendshipLevel = lvl;
+          updatedState.friendshipXP = xp;
+
           if (updatedState.lastWaterDate !== todayStr) {
             updatedState.waterCount = 0;
             updatedState.lastWaterDate = todayStr;
@@ -68,6 +149,21 @@ export function GameProvider({ children }) {
           } else {
             const lastTime = new Date(updatedState.lastInteraction).getTime();
             const diffMs = now.getTime() - lastTime;
+            const hoursPassed = diffMs / (1000 * 60 * 60);
+
+            if (hoursPassed >= 2 && !updatedState.pendingAdventure) {
+              const randomAdv = ADVENTURES[Math.floor(Math.random() * ADVENTURES.length)];
+              const adventure = {
+                ...randomAdv,
+                timestamp: now.toISOString()
+              };
+              updatedState.pendingAdventure = adventure;
+              updatedState.lastAdventure = adventure;
+              updatedState.coins = (updatedState.coins ?? 100) + randomAdv.coins;
+              updatedState.happiness = Math.min(100, (updatedState.happiness ?? 50) + randomAdv.happiness);
+              needsSave = true;
+            }
+
             const daysPassed = Math.floor(diffMs / (24 * 60 * 60 * 1000));
             if (daysPassed >= 1) {
               const penalty = daysPassed * 15;
@@ -76,7 +172,6 @@ export function GameProvider({ children }) {
               updatedState.cleanliness = Math.max(0, (updatedState.cleanliness ?? 50) - penalty);
               updatedState.health = Math.max(0, (updatedState.health ?? 100) - penalty);
             }
-            // Opening the app counts as a check-in, so we reset the lastInteraction time to now
             updatedState.lastInteraction = now.toISOString();
             needsSave = true;
           }
@@ -94,6 +189,12 @@ export function GameProvider({ children }) {
     load();
   }, [userId]);
 
+  const [heartKey, setHeartKey] = useState(0);
+
+  const triggerHeart = () => {
+    setHeartKey(prev => prev + 1);
+  };
+
   const updateGameState = async (updates) => {
     const newState = { 
       ...gameState, 
@@ -102,6 +203,26 @@ export function GameProvider({ children }) {
     };
     setGameState(newState);
     await saveGameState(userId, newState);
+  };
+
+  const dismissAdventure = () => {
+    triggerHeart();
+    updateGameState({ pendingAdventure: null });
+  };
+
+  const triggerAdventure = () => {
+    triggerHeart();
+    const randomAdv = ADVENTURES[Math.floor(Math.random() * ADVENTURES.length)];
+    const adventure = {
+      ...randomAdv,
+      timestamp: new Date().toISOString()
+    };
+    updateGameState({
+      pendingAdventure: adventure,
+      lastAdventure: adventure,
+      coins: (gameState?.coins ?? 100) + randomAdv.coins,
+      happiness: Math.min(100, (gameState?.happiness ?? 50) + randomAdv.happiness)
+    });
   };
 
   const handleLogout = async () => {
@@ -115,7 +236,7 @@ export function GameProvider({ children }) {
   }
 
   return (
-    <GameContext.Provider value={{ gameState, updateGameState, userId, handleLogout }}>
+    <GameContext.Provider value={{ gameState, updateGameState, userId, handleLogout, dismissAdventure, triggerAdventure, heartKey, triggerHeart }}>
       {gameState ? children : <div style={{ textAlign: 'center', marginTop: '20vh' }}>Loading Game State...</div>}
     </GameContext.Provider>
   );
