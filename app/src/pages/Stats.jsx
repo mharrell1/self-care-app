@@ -321,24 +321,104 @@ export default function Stats() {
           padding: '0.75rem',
           marginBottom: '0.75rem'
         }}>
-          <h3 style={{ fontFamily: 'var(--header-font)', fontSize: '0.85rem', textAlign: 'center', marginBottom: '0.5rem' }}>
-            Mood & Self-Care Correlations
+          <h3 style={{ fontFamily: 'var(--header-font)', fontSize: '0.85rem', textAlign: 'center', marginBottom: '0.6rem' }}>
+            Mood & Self-Care Summary ({monthNames[currentMonth]} {currentYear})
           </h3>
 
-          <div style={{ marginBottom: '1rem' }}>
-            <h4 style={{ fontSize: '0.85rem', marginBottom: '0.4rem', color: 'var(--primary-color)' }}>
-              Self-Care Insights & Habits
+          {/* Section 1: Moods Tracked This Month */}
+          <div style={{ marginBottom: '1rem', borderBottom: '1px dashed var(--window-border)', paddingBottom: '0.75rem' }}>
+            <h4 style={{ fontSize: '0.85rem', marginBottom: '0.4rem', color: 'var(--primary-color)', fontFamily: 'var(--header-font)' }}>
+              Moods Tracked This Month
             </h4>
 
-            <div style={{ backgroundColor: 'var(--bg-color)', border: '1px solid var(--window-border)', borderRadius: '6px', padding: '0.5rem', marginBottom: '0.4rem', fontSize: '0.85rem' }}>
-              <strong>Hydration & Energy:</strong> Drinking 4+ cups of water correlates with an 85% increase in positive mood days!
-            </div>
-            <div style={{ backgroundColor: 'var(--bg-color)', border: '1px solid var(--window-border)', borderRadius: '6px', padding: '0.5rem', marginBottom: '0.4rem', fontSize: '0.85rem' }}>
-              <strong>Mindfulness Sounds:</strong> Listening to Pond Sounds & Breathing exercises correlates with 90% Calm days.
-            </div>
-            <div style={{ backgroundColor: 'var(--bg-color)', border: '1px solid var(--window-border)', borderRadius: '6px', padding: '0.5rem', fontSize: '0.85rem' }}>
-              <strong>Daily Reflection:</strong> Writing in your journal boosts pet happiness by +25%!
-            </div>
+            {(() => {
+              const monthPrefix = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+              const logs = gameState?.dailyMoodLogs || {};
+              const thisMonthLogs = Object.entries(logs).filter(([date]) => date.startsWith(monthPrefix));
+
+              // Count mood frequencies
+              const counts = { Great: 0, Good: 0, Okay: 0, Sad: 0, Angry: 0 };
+              thisMonthLogs.forEach(([_, mood]) => {
+                if (counts[mood] !== undefined) counts[mood]++;
+              });
+
+              const totalLogged = thisMonthLogs.length;
+
+              if (totalLogged === 0) {
+                return (
+                  <p style={{ fontSize: '0.8rem', color: '#666', fontStyle: 'italic', margin: '0.4rem 0' }}>
+                    No moods logged yet for this month. Visit the Care tab to log how you are feeling!
+                  </p>
+                );
+              }
+
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  {Object.entries(counts).map(([moodName, count]) => {
+                    const pct = totalLogged > 0 ? Math.round((count / totalLogged) * 100) : 0;
+                    return (
+                      <div key={moodName} style={{ backgroundColor: 'var(--bg-color)', padding: '0.35rem 0.5rem', borderRadius: '5px', border: '1px solid var(--window-border)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '0.25rem', fontWeight: 'bold' }}>
+                          <span>{moodName}</span>
+                          <span>{count} days ({pct}%)</span>
+                        </div>
+                        <div style={{ height: '8px', backgroundColor: '#e0e0e0', borderRadius: '4px', overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${pct}%`, backgroundColor: 'var(--window-title-bg)', transition: 'width 0.3s ease' }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Section 2: Self-Care Tasks Completed */}
+          <div>
+            <h4 style={{ fontSize: '0.85rem', marginBottom: '0.4rem', color: 'var(--primary-color)', fontFamily: 'var(--header-font)' }}>
+              Self-Care Tasks Completed
+            </h4>
+
+            {(() => {
+              const checklist = gameState?.checklist || [];
+              const completedChecklist = checklist.filter(t => t.completed);
+              const waterCups = gameState?.waterCount || 0;
+              const medTaken = gameState?.medicationTaken;
+
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  <div style={{ backgroundColor: '#f1f8e9', padding: '0.4rem 0.6rem', borderRadius: '5px', border: '1px solid #c8e6c9', fontSize: '0.8rem' }}>
+                    <strong>Hydration Tracker: </strong>
+                    <span>{waterCups} / 8 Cups Drunk Today {waterCups >= 8 ? '[Goal Achieved]' : ''}</span>
+                  </div>
+
+                  <div style={{ backgroundColor: medTaken ? '#f1f8e9' : '#fff3e0', padding: '0.4rem 0.6rem', borderRadius: '5px', border: `1px solid ${medTaken ? '#c8e6c9' : '#ffe0b2'}`, fontSize: '0.8rem' }}>
+                    <strong>Daily Medicine: </strong>
+                    <span>{medTaken ? 'Medicine Taken [Done]' : 'Pending for today'}</span>
+                  </div>
+
+                  <div style={{ backgroundColor: 'var(--bg-color)', padding: '0.4rem 0.6rem', borderRadius: '5px', border: '1px solid var(--window-border)', fontSize: '0.8rem' }}>
+                    <strong>Daily Checklist Tasks ({completedChecklist.length} / {checklist.length} Completed):</strong>
+                    {checklist.length === 0 ? (
+                      <p style={{ margin: '0.2rem 0 0 0', color: '#666', fontStyle: 'italic' }}>No checklist tasks set.</p>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.35rem' }}>
+                        {checklist.map(t => (
+                          <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ textDecoration: t.completed ? 'line-through' : 'none', color: t.completed ? '#2e7d32' : '#333' }}>
+                              {t.text}
+                            </span>
+                            <span style={{ fontWeight: 'bold', fontSize: '0.75rem', color: t.completed ? '#2e7d32' : '#888' }}>
+                              {t.completed ? '[Done]' : '[Pending]'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
