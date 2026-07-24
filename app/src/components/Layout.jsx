@@ -14,13 +14,13 @@ function Layout() {
 
   const getWindowTitle = () => {
     switch (location.pathname) {
-      case '/': return 'Froggy Dashboard';
+      case '/': return 'Frogagotchi Dashboard';
       case '/journal': return 'Secret Journal.exe';
       case '/games': return 'Mini Games Collection';
       case '/selfcare': return 'Self Care Zone';
       case '/dressup': return 'Dress Up.exe';
       case '/photos': return 'Photo Booth.exe';
-      default: return 'Froggy App';
+      default: return 'Frogagotchi App';
     }
   };
 

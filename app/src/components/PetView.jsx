@@ -71,6 +71,29 @@ export default function PetView() {
             {gameState.cleanliness}%
           </span>
         </div>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          borderTop: '2px dashed var(--window-border-light)', 
+          paddingTop: '0.5rem',
+          marginTop: '0.5rem'
+        }}>
+          <span style={{ fontWeight: 'bold' }}>Coins:</span>
+          <span style={{ 
+            fontWeight: 'bold', 
+            color: '#b57c00', 
+            backgroundColor: '#fffde7', 
+            border: '1.5px solid #b57c00', 
+            borderRadius: '4px',
+            padding: '1px 6px',
+            fontSize: '0.95rem',
+            display: 'inline-flex',
+            alignItems: 'center'
+          }}>
+            {gameState.coins}
+          </span>
+        </div>
       </div>
     </div>
   );

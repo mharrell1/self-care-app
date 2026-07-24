@@ -2,8 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useGame } from '../context/GameContext';
 import { saveJournalEntry, getJournalEntries, updateJournalEntry, deleteJournalEntry, getMoodHistory, getPhotos } from '../services/db';
 
+const GUIDED_PROMPTS = [
+  "What is 1 thing you are proud of today?",
+  "Who brought you joy recently?",
+  "What is a small win or accomplishment you had today?",
+  "Describe a kind gesture you received or gave recently.",
+  "What made you feel peaceful or relaxed today?"
+];
+
 export default function Journal() {
-  const { userId } = useGame();
+  const { userId, gameState, updateGameState } = useGame();
+  const [showPromptSelector, setShowPromptSelector] = useState(false);
   const [entries, setEntries] = useState([]);
   const [newEntry, setNewEntry] = useState('');
   const [lastMood, setLastMood] = useState(null);
@@ -37,11 +46,24 @@ export default function Journal() {
     setNewEntry(prev => prev ? `${moodNote}\n${prev}` : moodNote);
   };
 
+  const handleSelectPrompt = (prompt) => {
+    const promptText = `Prompt: ${prompt}\n\n`;
+    setNewEntry(prev => prev ? `${promptText}${prev}` : promptText);
+    setShowPromptSelector(false);
+  };
+
   const handleSave = async () => {
     if (!newEntry.trim()) return;
 
     const savedEntry = await saveJournalEntry(userId, newEntry, selectedPhotoUrl);
     setEntries([savedEntry, ...entries]);
+
+    // Reward user: +15 coins, +10 happiness
+    updateGameState({
+      coins: (gameState.coins ?? 100) + 15,
+      happiness: Math.min(100, (gameState.happiness ?? 50) + 10)
+    });
+
     setNewEntry('');
     setSelectedPhotoUrl(null);
   };
@@ -101,8 +123,49 @@ export default function Journal() {
           >
             Import Photo
           </button>
+          <button 
+            className="btn"
+            onClick={() => setShowPromptSelector(!showPromptSelector)}
+            title="Choose a guided reflection prompt"
+            style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem', backgroundColor: 'var(--button-bg)' }}
+          >
+            Guided Prompt
+          </button>
         </div>
       </div>
+      
+      {showPromptSelector && (
+        <div style={{
+          backgroundColor: '#fff',
+          border: '2px solid var(--window-border-dark)',
+          borderRadius: '5px',
+          padding: '0.65rem',
+          marginBottom: '0.75rem',
+          fontSize: '0.95rem',
+          boxShadow: '1px 1px 0px rgba(0,0,0,0.1)'
+        }}>
+          <div style={{ fontWeight: 'bold', marginBottom: '0.4rem', color: 'var(--text-primary)', fontFamily: 'var(--header-font)', fontSize: '0.7rem' }}>Select a Guided Prompt:</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            {GUIDED_PROMPTS.map((prompt, idx) => (
+              <button 
+                key={idx}
+                className="btn"
+                style={{ padding: '0.35rem 0.5rem', fontSize: '0.9rem', textAlign: 'left', width: '100%', whiteSpace: 'normal', lineHeight: '1.2' }}
+                onClick={() => handleSelectPrompt(prompt)}
+              >
+                {prompt}
+              </button>
+            ))}
+            <button 
+              className="btn"
+              style={{ padding: '0.2rem 0.5rem', fontSize: '0.85rem', backgroundColor: '#e0e0e0', marginTop: '0.25rem', width: 'fit-content', alignSelf: 'center' }}
+              onClick={() => setShowPromptSelector(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
       
       <textarea 
         value={newEntry}

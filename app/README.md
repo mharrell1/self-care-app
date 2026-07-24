@@ -1,22 +1,21 @@
-# Frog Self Care
+# Frogagotchi App
 
-A virtual pet application where you care for your frog! Keep your frog happy, clean, and fed to earn coins and unlock new features.
+A virtual pet application where you care for your virtual frog companion! Keep your frog happy, clean, and fed to earn coins and unlock new features.
 
 ## Recent Updates
 
-- **Photobooth Rendering Engine & Camera Roll Fixes:** Switched to a custom 2D canvas composite renderer with aspect-ratio containment (`drawContainImage`) that matches browser rendering exactly. Correctly parses custom coordinates (`top`/`left` drag percentages) of equipped accessories, fixing displaced/stretched clothing, and allows clean iOS/Android Camera Roll saving.
-- **Journal Photo Imports:** Added support for importing photobooth photos directly into your journal entries with live creation/editing preview and deletion support.
-- **Interactive Dress Up Closet:** Dress up your frog using a full drag-and-drop closet interface! Clothes hang on shelves and hangers until you drag them onto your frog.
-- **Improved Item Sizing:** All clothing items have been meticulously scaled and positioned to perfectly fit the transparent frog base.
-- **Frog Versions:** Swap between different versions of your frog base directly from the dashboard!
-- **Fishing Minigame Enhancements:** Added more randomization to fish catches so it feels less repetitive.
-- **Cooking Minigame Tweaks:** Improved placement of ingredients in the cooking game for a better aesthetic feel.
+- **Renamed App to Frogagotchi:** Updated all app branding and title headers.
+- **Daily Self-Care Checklist:** Added custom daily self-care task list on the Care page with daily uncheck resets and +10 Coin / +10 Happiness completion rewards.
+- **Pond Sound Machine:** Built-in Web Audio API ambient sound synthesizer engine with **Gentle Rain**, **Pond & Frogs** (soft water ripples with relaxing periodic frog croaks), and **Lofi Beats** (warm pentatonic synth chords). Features theme-matching LCD colors and custom block SVG control icons.
+- **Guided Reflection Prompts:** Added 5 guided journal reflection prompts to the Secret Journal tab.
+- **Journal Entry Rewards:** Earn **+15 Coins** and **+10 Happiness** per saved journal entry.
+- **Daily Water Intake Tracker:** Track daily water cups on the dashboard to boost cleanliness and happiness.
+- **Inactivity Decay & Drained Sticker:** Added 15-point/day stat decay system for 24h inactivity. Automatically swaps pet avatar to a sad frowning plush frog sticker with background removed when stats reach 0.
+- **Photobooth Rendering Engine & Camera Roll Fixes:** Custom 2D canvas composite renderer with aspect-ratio containment (`drawContainImage`).
+- **Interactive Closet:** Full drag-and-drop closet interface for customized clothing.
 
 ## Tech Stack
 - React + Vite
-- Firebase
+- Web Audio API (Sound Synthesizers)
+- Firebase Firestore & Storage
 - React Router DOM
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.

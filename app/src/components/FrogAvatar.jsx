@@ -1,7 +1,10 @@
 import React from 'react';
 
 export default function FrogAvatar({ gameState }) {
+  const isFullyDrained = (gameState.happiness ?? 50) <= 0 || (gameState.hunger ?? 50) <= 0 || (gameState.cleanliness ?? 50) <= 0;
+
   const getFrogImage = () => {
+    if (isFullyDrained) return '/assets/frog_drained_clean.png?v=20260723_1945';
     if (gameState.hunger < 30) return '/assets/frog_sad.png';
     const items = gameState.equippedItems || (gameState.equippedItem ? [gameState.equippedItem] : []);
     const itemNames = items.filter(i => typeof i === 'string');
@@ -32,7 +35,9 @@ export default function FrogAvatar({ gameState }) {
     }
   };
 
-  const items = gameState.equippedItems || (gameState.equippedItem && gameState.equippedItem !== 'base' ? [gameState.equippedItem] : []);
+  const items = isFullyDrained
+    ? []
+    : (gameState.equippedItems || (gameState.equippedItem && gameState.equippedItem !== 'base' ? [gameState.equippedItem] : []));
 
   return (
     <div style={{ position: 'relative', display: 'inline-block', width: '100%', height: '100%' }}>

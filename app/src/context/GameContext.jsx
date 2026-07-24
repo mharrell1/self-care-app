@@ -27,7 +27,53 @@ export function GameProvider({ children }) {
     async function load() {
       try {
         const state = await getGameState(userId);
-        setGameState(state);
+        let updatedState = state ? { ...state } : null;
+        let needsSave = false;
+
+        if (updatedState) {
+          const now = new Date();
+          const todayStr = now.toLocaleDateString();
+          if (updatedState.lastWaterDate !== todayStr) {
+            updatedState.waterCount = 0;
+            updatedState.lastWaterDate = todayStr;
+            needsSave = true;
+          }
+
+          if (updatedState.checklistLastResetDate !== todayStr) {
+            const currentChecklist = updatedState.checklist !== undefined ? updatedState.checklist : [
+              { id: '1', text: 'Drink a glass of water', completed: false },
+              { id: '2', text: 'Make my bed', completed: false },
+              { id: '3', text: 'Step outside for 5 mins', completed: false },
+              { id: '4', text: 'Stretch for 2 minutes', completed: false }
+            ];
+            updatedState.checklist = currentChecklist.map(item => ({ ...item, completed: false }));
+            updatedState.checklistLastResetDate = todayStr;
+            needsSave = true;
+          }
+
+          if (!updatedState.lastInteraction) {
+            updatedState.lastInteraction = now.toISOString();
+            needsSave = true;
+          } else {
+            const lastTime = new Date(updatedState.lastInteraction).getTime();
+            const diffMs = now.getTime() - lastTime;
+            const daysPassed = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+            if (daysPassed >= 1) {
+              const penalty = daysPassed * 15;
+              updatedState.happiness = Math.max(0, (updatedState.happiness ?? 50) - penalty);
+              updatedState.hunger = Math.max(0, (updatedState.hunger ?? 50) - penalty);
+              updatedState.cleanliness = Math.max(0, (updatedState.cleanliness ?? 50) - penalty);
+            }
+            // Opening the app counts as a check-in, so we reset the lastInteraction time to now
+            updatedState.lastInteraction = now.toISOString();
+            needsSave = true;
+          }
+        }
+
+        if (needsSave && updatedState) {
+          await saveGameState(userId, updatedState);
+        }
+        setGameState(updatedState);
       } catch (err) {
         console.error("Failed to load game state", err);
         setError(err.message || "Unknown error connecting to Firestore.");
@@ -37,7 +83,11 @@ export function GameProvider({ children }) {
   }, [userId]);
 
   const updateGameState = async (updates) => {
-    const newState = { ...gameState, ...updates };
+    const newState = { 
+      ...gameState, 
+      ...updates, 
+      lastInteraction: updates.lastInteraction || new Date().toISOString() 
+    };
     setGameState(newState);
     await saveGameState(userId, newState);
   };

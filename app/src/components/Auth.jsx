@@ -48,7 +48,7 @@ export default function Auth() {
       </div>
       <div className="window-content">
         <h3 style={{ fontFamily: 'var(--header-font)', fontSize: '1rem', marginBottom: '1rem' }}>
-          Welcome to Froggy!
+          Welcome to Frogagotchi!
         </h3>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <input 
