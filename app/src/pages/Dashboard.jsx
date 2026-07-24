@@ -3,6 +3,50 @@ import PetView, { getUpcomingHoliday } from '../components/PetView';
 import FrogAvatar from '../components/FrogAvatar';
 import { useGame } from '../context/GameContext';
 
+const DAILY_AFFIRMATIONS = [
+  "You are capable of achieving wonderful things today.",
+  "Taking care of yourself is an act of self-love and strength.",
+  "Small steps every day lead to big, beautiful progress.",
+  "You deserve peace, happiness, and restful moments.",
+  "Your presence makes the world a brighter, happier place.",
+  "It is okay to pause, breathe, and recharge whenever you need.",
+  "You are doing much better than you give yourself credit for.",
+  "Be kind to yourself—you are growing and learning every single day.",
+  "Today is a fresh opportunity to be gentle with your heart.",
+  "You are worthy of all the good things coming your way.",
+  "Trust your journey and believe in your unique resilience.",
+  "Every small act of care for yourself creates positive ripples.",
+  "You hold the power to create a peaceful day for yourself.",
+  "Your feelings are valid, and your efforts truly matter.",
+  "Embrace your unique self—there is no one else like you.",
+  "You have overcome hard days before, and you can handle today too.",
+  "Rest is productive. Give yourself permission to unwind.",
+  "Celebrate your small wins—they matter just as much.",
+  "You are allowed to take up space and express your true self.",
+  "Peace begins with a single deep, gentle breath.",
+  "Focus on progress, not perfection. You are doing great.",
+  "Your kindness and warmth inspire those around you.",
+  "Today, choose to nourish your mind, body, and spirit.",
+  "You are stronger than your worries and calmer than your doubts.",
+  "Surround yourself with thoughts that bring you joy.",
+  "You have so much to offer, just by being who you are.",
+  "Forgive yourself for yesterday and welcome the magic of today.",
+  "Your potential is endless when you listen to your inner strength.",
+  "Everything you need to thrive is already within you.",
+  "You are loved, appreciated, and deserving of happiness."
+];
+
+function getDailyAffirmation() {
+  const today = new Date();
+  const dateStr = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
+  let hash = 0;
+  for (let i = 0; i < dateStr.length; i++) {
+    hash = dateStr.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % DAILY_AFFIRMATIONS.length;
+  return DAILY_AFFIRMATIONS[index];
+}
+
 export default function Dashboard() {
   const { gameState, updateGameState, dismissAdventure, triggerAdventure, triggerHeart } = useGame();
   const [editingName, setEditingName] = useState(false);
@@ -203,6 +247,25 @@ export default function Dashboard() {
       )}
 
       <PetView />
+
+      {/* Daily Affirmation Card */}
+      <div style={{
+        backgroundColor: 'var(--bg-color)',
+        border: '2px solid var(--window-border-dark)',
+        borderRadius: '8px',
+        padding: '0.65rem 0.85rem',
+        margin: '0.6rem auto 0.4rem auto',
+        textAlign: 'center',
+        boxShadow: '1px 1px 0px rgba(0,0,0,0.1)',
+        maxWidth: '380px'
+      }}>
+        <div style={{ fontFamily: 'var(--header-font)', fontSize: '0.72rem', color: 'var(--primary-color)', marginBottom: '0.3rem' }}>
+          Daily Affirmation
+        </div>
+        <p style={{ margin: 0, fontSize: '0.9rem', fontStyle: 'italic', color: 'var(--text-primary)', lineHeight: '1.35' }}>
+          "{getDailyAffirmation()}"
+        </p>
+      </div>
 
       {/* Recent Adventure Display Card */}
       {gameState?.lastAdventure && (
