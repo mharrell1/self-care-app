@@ -331,9 +331,12 @@ export default function SelfCare() {
           setBreathingPhase('inhale');
         } else {
           // Finished 3 full cycles!
+          const todayISO = new Date().toISOString().split('T')[0];
           updateGameState({ 
             happiness: Math.min(100, (gameState.happiness ?? 50) + 15), 
-            coins: (gameState.coins ?? 100) + 15 
+            coins: (gameState.coins ?? 100) + 15,
+            lastBreathingDate: todayISO,
+            breathingCount: (gameState.breathingCount || 0) + 1
           });
           setBreathingPhase('idle');
           setBreatheCycle(1);

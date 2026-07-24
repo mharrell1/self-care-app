@@ -405,6 +405,8 @@ export default function Stats() {
               const completedChecklist = checklist.filter(t => t.completed);
               const waterCups = gameState?.waterCount || 0;
               const medTaken = gameState?.medicationTaken;
+              const todayISO = new Date().toISOString().split('T')[0];
+              const isBreathingDone = gameState?.lastBreathingDate === todayISO || (gameState?.breathingCount || 0) > 0;
 
               return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
@@ -416,6 +418,11 @@ export default function Stats() {
                   <div style={{ backgroundColor: medTaken ? '#f1f8e9' : '#fff3e0', padding: '0.4rem 0.6rem', borderRadius: '5px', border: `1px solid ${medTaken ? '#c8e6c9' : '#ffe0b2'}`, fontSize: '0.8rem' }}>
                     <strong>Daily Medicine: </strong>
                     <span>{medTaken ? 'Medicine Taken [Done]' : 'Pending for today'}</span>
+                  </div>
+
+                  <div style={{ backgroundColor: isBreathingDone ? '#f1f8e9' : '#fff3e0', padding: '0.4rem 0.6rem', borderRadius: '5px', border: `1px solid ${isBreathingDone ? '#c8e6c9' : '#ffe0b2'}`, fontSize: '0.8rem' }}>
+                    <strong>Breathing Exercise: </strong>
+                    <span>{isBreathingDone ? '3 Cycles Completed [Done]' : 'Pending for today'}</span>
                   </div>
 
                   <div style={{ backgroundColor: 'var(--bg-color)', padding: '0.4rem 0.6rem', borderRadius: '5px', border: '1px solid var(--window-border)', fontSize: '0.8rem' }}>
