@@ -30,6 +30,9 @@ export default function Journal() {
   const [editPhotoUrl, setEditPhotoUrl] = useState(null);
   const [showEditPhotoSelector, setShowEditPhotoSelector] = useState(false);
 
+  // Enlarged Lightbox Photo State
+  const [enlargedPhotoUrl, setEnlargedPhotoUrl] = useState(null);
+
   useEffect(() => {
     getJournalEntries(userId).then(setEntries);
     getMoodHistory(userId).then(moods => {
@@ -264,7 +267,8 @@ export default function Journal() {
                   <textarea 
                     value={editText}
                     onChange={(e) => setEditText(e.target.value)}
-                    style={{ width: '100%', height: '120px', resize: 'none', padding: '0.5rem', fontFamily: 'inherit', fontSize: '1rem' }}
+                    placeholder="Edit your journal entry..."
+                    style={{ width: '100%', height: '150px', resize: 'none', padding: '0.5rem', fontFamily: 'inherit', fontSize: '1rem' }}
                   />
                   
                   {/* Edit Mode Photo Preview & Actions */}
@@ -277,7 +281,12 @@ export default function Journal() {
                         borderRadius: '8px', 
                         overflow: 'hidden' 
                       }}>
-                        <img src={editPhotoUrl} alt="Selected Edit" style={{ width: '120px', height: '90px', objectFit: 'cover', display: 'block' }} />
+                        <img 
+                          src={editPhotoUrl} 
+                          alt="Selected Edit" 
+                          onClick={() => setEnlargedPhotoUrl(editPhotoUrl)}
+                          style={{ width: '120px', height: '90px', objectFit: 'cover', display: 'block', cursor: 'pointer' }} 
+                        />
                         <button 
                           onClick={() => setEditPhotoUrl(null)}
                           title="Remove photo"
@@ -350,12 +359,15 @@ export default function Journal() {
                       <img 
                         src={entry.photoUrl} 
                         alt="Journal Memory" 
+                        onClick={() => setEnlargedPhotoUrl(entry.photoUrl)}
+                        title="Click to enlarge photo"
                         style={{ 
                           maxWidth: '100%', 
                           maxHeight: '220px', 
                           borderRadius: '5px',
                           display: 'block',
-                          objectFit: 'contain'
+                          objectFit: 'contain',
+                          cursor: 'pointer'
                         }} 
                       />
                     </div>
@@ -477,6 +489,64 @@ export default function Journal() {
               >
                 Cancel
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lightbox Modal for Enlarged Photo */}
+      {enlargedPhotoUrl && (
+        <div 
+          onClick={() => setEnlargedPhotoUrl(null)}
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.82)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2000,
+            padding: '1rem',
+            cursor: 'pointer'
+          }}
+        >
+          <div 
+            className="window" 
+            onClick={e => e.stopPropagation()}
+            style={{
+              backgroundColor: '#fff',
+              border: '3px solid var(--window-border-dark)',
+              borderRadius: '8px',
+              maxWidth: '90vw',
+              maxHeight: '90vh',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
+            <div className="window-header" style={{
+              backgroundColor: 'var(--window-title-bg)',
+              color: 'var(--window-title-text)',
+              padding: '0.4rem 0.8rem',
+              fontWeight: 'bold',
+              display: 'flex',
+              justify: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span>Photo Preview</span>
+              <button 
+                onClick={() => setEnlargedPhotoUrl(null)}
+                style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontWeight: 'bold' }}
+              >
+                X
+              </button>
+            </div>
+            <div style={{ padding: '0.75rem', textAlign: 'center', backgroundColor: '#000' }}>
+              <img 
+                src={enlargedPhotoUrl} 
+                alt="Enlarged Memory" 
+                style={{ maxWidth: '100%', maxHeight: '75vh', borderRadius: '4px', objectFit: 'contain' }} 
+              />
             </div>
           </div>
         </div>

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
 import { getJournalEntries, getMoodHistory } from '../services/db';
 
 export default function Stats() {
+  const navigate = useNavigate();
   const { userId, gameState, updateGameState } = useGame();
   const [selectedDayLog, setSelectedDayLog] = useState(null);
   const [viewMode, setViewMode] = useState('calendar'); // 'calendar' | 'analytics'
@@ -501,9 +503,28 @@ export default function Stats() {
                 {selectedDayLog.journals && selectedDayLog.journals.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.35rem' }}>
                     {selectedDayLog.journals.map((j, i) => (
-                      <div key={j.id || i} style={{ fontStyle: 'italic', backgroundColor: 'var(--bg-color)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--window-border)' }}>
-                        "{j.content || j.text}"
-                      </div>
+                      <button 
+                        key={j.id || i}
+                        className="btn"
+                        onClick={() => {
+                          setSelectedDayLog(null);
+                          navigate('/journal');
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justify: 'space-between',
+                          padding: '0.4rem 0.65rem',
+                          fontSize: '0.85rem',
+                          backgroundColor: 'var(--button-bg)',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          width: '100%'
+                        }}
+                      >
+                        <span>Open Journal Entry #{i + 1}</span>
+                        <span style={{ fontWeight: 'bold', marginLeft: '0.5rem', color: 'var(--text-primary)' }}>View in Journal ➔</span>
+                      </button>
                     ))}
                   </div>
                 ) : (
