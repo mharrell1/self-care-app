@@ -1,10 +1,69 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
+
+const FROG_AFFIRMATIONS = [
+  "Even on rainy days, a frog knows how to leap with joy!",
+  "Take it one lilypad hop at a time—you are making progress!",
+  "It is totally un-frog-gettable how amazing and strong you are!",
+  "Rest on your lilypad today. You don't always have to be leaping!",
+  "Your kindness is toad-ally magical and brightens the whole pond!",
+  "You are ribbit-ing with potential and capable of great things!",
+  "Drink your water, breathe deeply, and enjoy calm pond waters.",
+  "Small hops every day add up to giant leaps over time!",
+  "Bask in the warm sun and be proud of how far you've come.",
+  "You are deserving of love, peace, and plenty of cozy pond moments.",
+  "Never let anyone dull your shine—you are a masterpiece in this pond!",
+  "Keep your head above water and remember you've got this!",
+  "A quiet pond brings clarity. Give yourself time to relax.",
+  "You are toad-ally awesome, just by being yourself!",
+  "Hop into today with confidence and a gentle smile.",
+  "Surround yourself with cozy waters and uplifting thoughts.",
+  "Every lilypad is a new opportunity to rest and recharge.",
+  "You bring balance and harmony to your little corner of the world.",
+  "No matter how murky the water gets, your inner light shines bright.",
+  "Be patient with your growth—tadpoles take time to blossom into frogs!",
+  "Your heart is full of wonder, strength, and endless warmth.",
+  "Enjoy the sweet sound of rain and let your worries wash away.",
+  "You are strong enough to splash through any obstacle today.",
+  "Take a deep breath and listen to the soothing rhythm of nature.",
+  "Your resilience is un-frog-gettable. Keep hopping forward!",
+  "Pond life is sweet when you take time to care for your heart.",
+  "Celebrate your progress today—every hop counts!",
+  "You are a precious part of this pond. Never forget your worth.",
+  "Embrace your unique splash—the world needs your light!",
+  "Croak your truth with confidence and live authentically!"
+];
+
+function getDailyFrogAffirmation() {
+  const today = new Date();
+  const dateStr = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
+  let hash = 0;
+  for (let i = 0; i < dateStr.length; i++) {
+    hash = dateStr.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % FROG_AFFIRMATIONS.length;
+  return FROG_AFFIRMATIONS[index];
+}
 
 function Layout() {
   const location = useLocation();
   const { gameState, handleLogout } = useGame();
+  const [showAffirmationModal, setShowAffirmationModal] = useState(false);
+
+  useEffect(() => {
+    const todayISO = new Date().toISOString().split('T')[0];
+    const lastSeen = localStorage.getItem('frog_affirmation_seen_date');
+    if (lastSeen !== todayISO) {
+      setShowAffirmationModal(true);
+    }
+  }, []);
+
+  const handleCloseAffirmation = () => {
+    const todayISO = new Date().toISOString().split('T')[0];
+    localStorage.setItem('frog_affirmation_seen_date', todayISO);
+    setShowAffirmationModal(false);
+  };
 
   useEffect(() => {
     if (gameState?.themeColor) {
@@ -89,6 +148,69 @@ function Layout() {
           );
         })}
       </div>
+
+      {/* DAILY FROGGY AFFIRMATION POPUP MODAL (First App Launch of Each Day) */}
+      {showAffirmationModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.65)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 3000,
+          padding: '1rem'
+        }}>
+          <div className="window" style={{
+            backgroundColor: '#fff',
+            border: '3px solid var(--window-border-dark)',
+            borderRadius: '8px',
+            maxWidth: '360px',
+            width: '100%',
+            overflow: 'hidden',
+            boxShadow: '4px 4px 12px rgba(0,0,0,0.3)'
+          }}>
+            <div className="window-header" style={{
+              backgroundColor: 'var(--window-title-bg)',
+              color: 'var(--window-title-text)',
+              padding: '0.4rem 0.8rem',
+              fontWeight: 'bold',
+              display: 'flex',
+              justify: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span>Daily Froggy Affirmation</span>
+              <button 
+                onClick={handleCloseAffirmation}
+                style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontWeight: 'bold' }}
+              >
+                X
+              </button>
+            </div>
+
+            <div style={{ padding: '1.25rem 1rem', textAlign: 'center' }}>
+              <img 
+                src="/assets/pixel_frog_marker.png" 
+                alt="Frog Affirmation" 
+                style={{ width: '48px', height: '48px', marginBottom: '0.75rem', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))' }}
+              />
+              <div style={{ fontFamily: 'var(--header-font)', fontSize: '0.75rem', color: 'var(--primary-color)', marginBottom: '0.5rem' }}>
+                Today's Frog Thought
+              </div>
+              <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.95rem', fontStyle: 'italic', color: 'var(--text-primary)', lineHeight: '1.4' }}>
+                "{getDailyFrogAffirmation()}"
+              </p>
+              <button 
+                className="btn" 
+                onClick={handleCloseAffirmation}
+                style={{ padding: '0.35rem 1.4rem', fontSize: '0.95rem', fontWeight: 'bold', backgroundColor: 'var(--button-bg)' }}
+              >
+                Ribbit! 🐸
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
