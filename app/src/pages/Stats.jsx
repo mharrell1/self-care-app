@@ -56,6 +56,16 @@ export default function Stats() {
   const [journalEntries, setJournalEntries] = useState([]);
   const [moodHistory, setMoodHistory] = useState([]);
 
+  // Today's actual date (never changes)
+  const todayDate = new Date();
+  const todayYear = todayDate.getFullYear();
+  const todayMonth = todayDate.getMonth();
+  const todayDay = todayDate.getDate();
+
+  // Navigable calendar month/year (starts at current month)
+  const [calendarYear, setCalendarYear] = useState(todayYear);
+  const [calendarMonth, setCalendarMonth] = useState(todayMonth);
+
   useEffect(() => {
     if (userId) {
       getJournalEntries(userId).then(entries => setJournalEntries(entries || []));
@@ -63,18 +73,44 @@ export default function Stats() {
     }
   }, [userId]);
 
-  const currentDate = new Date();
-  const currentYear = currentDate.getFullYear();
-  const currentMonth = currentDate.getMonth(); // 0-indexed
-
   const monthNames = [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"
   ];
 
-  // Calculate days in month
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-  const firstDayOfWeek = new Date(currentYear, currentMonth, 1).getDay();
+  // Navigate calendar months
+  const goToPrevMonth = () => {
+    if (calendarMonth === 0) {
+      setCalendarMonth(11);
+      setCalendarYear(y => y - 1);
+    } else {
+      setCalendarMonth(m => m - 1);
+    }
+    setSelectedDayLog(null);
+  };
+
+  const goToNextMonth = () => {
+    if (calendarMonth === 11) {
+      setCalendarMonth(0);
+      setCalendarYear(y => y + 1);
+    } else {
+      setCalendarMonth(m => m + 1);
+    }
+    setSelectedDayLog(null);
+  };
+
+  const goToCurrentMonth = () => {
+    setCalendarYear(todayYear);
+    setCalendarMonth(todayMonth);
+    setSelectedDayLog(null);
+  };
+
+  // Calculate days in the viewed calendar month
+  const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+  const firstDayOfWeek = new Date(calendarYear, calendarMonth, 1).getDay();
+
+  // Is the calendar showing the current real month?
+  const isCurrentMonth = calendarYear === todayYear && calendarMonth === todayMonth;
 
   // Friendship Level Titles
   const getFriendshipTitle = (level) => {
@@ -92,23 +128,23 @@ export default function Stats() {
   // Active Days list (format: YYYY-MM-DD)
   const activeDays = Array.isArray(gameState?.activeDays) ? gameState.activeDays : [];
 
-  // Helper to format ISO date string for day number
+  // Helper to format ISO date string for the viewed calendar month
   const getISODateForDay = (dayNum) => {
-    const monthStr = String(currentMonth + 1).padStart(2, '0');
+    const monthStr = String(calendarMonth + 1).padStart(2, '0');
     const dayStr = String(dayNum).padStart(2, '0');
-    return `${currentYear}-${monthStr}-${dayStr}`;
+    return `${calendarYear}-${monthStr}-${dayStr}`;
   };
 
   const handleDayClick = (dayNum) => {
     const dateISO = getISODateForDay(dayNum);
-    const dateObj = new Date(currentYear, currentMonth, dayNum);
+    const dateObj = new Date(calendarYear, calendarMonth, dayNum);
     const dateDisplay = dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-    
+
     // Find journal entries for this date
     const dayJournals = journalEntries.filter(entry => {
       if (!entry.date) return false;
       const d = new Date(entry.date);
-      return d.getFullYear() === currentYear && d.getMonth() === currentMonth && d.getDate() === dayNum;
+      return d.getFullYear() === calendarYear && d.getMonth() === calendarMonth && d.getDate() === dayNum;
     });
 
     // Find mood for this date (check gameState.dailyMoodLogs first, then moodHistory)
@@ -117,19 +153,20 @@ export default function Stats() {
       const foundMood = moodHistory.slice().reverse().find(m => {
         if (!m.date) return false;
         const d = new Date(m.date);
-        return d.getFullYear() === currentYear && d.getMonth() === currentMonth && d.getDate() === dayNum;
+        return d.getFullYear() === calendarYear && d.getMonth() === calendarMonth && d.getDate() === dayNum;
       });
       if (foundMood) dayMood = foundMood.mood;
     }
 
-    const affirmation = getFrogAffirmationForDate(currentYear, currentMonth, dayNum);
+    // Every day gets its own unique affirmation based on the date
+    const affirmation = getFrogAffirmationForDate(calendarYear, calendarMonth, dayNum);
 
     setSelectedDayLog({
       dayNum,
       dateISO,
       dateDisplay,
       isActive: activeDays.includes(dateISO) || dayJournals.length > 0 || !!dayMood,
-      mood: dayMood || (activeDays.includes(dateISO) ? "Happy" : "No mood recorded"),
+      mood: dayMood || (activeDays.includes(dateISO) ? 'Happy' : 'No mood recorded'),
       journals: dayJournals,
       affirmation
     });
@@ -315,10 +352,34 @@ export default function Stats() {
           padding: '0.75rem',
           marginBottom: '0.75rem'
         }}>
-          <h3 style={{ fontFamily: 'var(--header-font)', fontSize: '0.85rem', textAlign: 'center', marginBottom: '0.5rem' }}>
-            {monthNames[currentMonth]} {currentYear}
-          </h3>
+          {/* Month Navigation Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+            <button
+              onClick={goToPrevMonth}
+              style={{ background: 'none', border: '2px solid var(--window-border-dark)', borderRadius: '4px', cursor: 'pointer', padding: '0.15rem 0.5rem', fontWeight: 'bold', fontSize: '1rem', lineHeight: '1', color: 'var(--primary-color)' }}
+              aria-label="Previous month"
+            >‹</button>
+            <div style={{ textAlign: 'center' }}>
+              <h3 style={{ fontFamily: 'var(--header-font)', fontSize: '0.85rem', margin: 0 }}>
+                {monthNames[calendarMonth]} {calendarYear}
+              </h3>
+              {!isCurrentMonth && (
+                <button
+                  onClick={goToCurrentMonth}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.7rem', color: 'var(--primary-color)', textDecoration: 'underline', padding: 0, marginTop: '2px' }}
+                >
+                  Back to Today
+                </button>
+              )}
+            </div>
+            <button
+              onClick={goToNextMonth}
+              style={{ background: 'none', border: '2px solid var(--window-border-dark)', borderRadius: '4px', cursor: 'pointer', padding: '0.15rem 0.5rem', fontWeight: 'bold', fontSize: '1rem', lineHeight: '1', color: 'var(--primary-color)' }}
+              aria-label="Next month"
+            >›</button>
+          </div>
 
+          {/* Day-of-week headers */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', textAlign: 'center', marginBottom: '0.3rem', fontWeight: 'bold', fontSize: '0.75rem', color: '#555' }}>
             <div>Sun</div>
             <div>Mon</div>
@@ -340,7 +401,8 @@ export default function Stats() {
               const dayNum = idx + 1;
               const dateISO = getISODateForDay(dayNum);
               const isActive = activeDays.includes(dateISO);
-              const isToday = dayNum === currentDate.getDate();
+              // Highlight today only when viewing the current real month
+              const isToday = isCurrentMonth && dayNum === todayDay;
 
               return (
                 <div
@@ -363,11 +425,10 @@ export default function Stats() {
                   <span style={{ fontSize: '0.7rem', fontWeight: isToday ? 'bold' : 'normal', color: isToday ? 'var(--primary-color)' : '#333' }}>
                     {dayNum}
                   </span>
-                  
                   {isActive && (
-                    <img 
-                      src="/assets/pixel_frog_marker.png" 
-                      alt="Active Frog Day" 
+                    <img
+                      src="/assets/pixel_frog_marker.png"
+                      alt="Active Frog Day"
                       style={{ width: '22px', height: '22px', display: 'block', margin: '1px auto' }}
                     />
                   )}
@@ -376,7 +437,7 @@ export default function Stats() {
             })}
           </div>
           <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.75rem', color: '#666', textAlign: 'center' }}>
-            Click any day to view past journal entries and logged moods!
+            Tap any day to see its affirmation, mood & journal entries!
           </p>
         </div>
       )}
@@ -391,7 +452,7 @@ export default function Stats() {
           marginBottom: '0.75rem'
         }}>
           <h3 style={{ fontFamily: 'var(--header-font)', fontSize: '0.85rem', textAlign: 'center', marginBottom: '0.6rem' }}>
-            Mood & Self-Care Summary ({monthNames[currentMonth]} {currentYear})
+            Mood & Self-Care Summary ({monthNames[calendarMonth]} {calendarYear})
           </h3>
 
           {/* Section 1: Moods Tracked This Month */}
@@ -401,7 +462,7 @@ export default function Stats() {
             </h4>
 
             {(() => {
-              const monthPrefix = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+              const monthPrefix = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}`;
               const logs = gameState?.dailyMoodLogs || {};
               const thisMonthLogs = Object.entries(logs).filter(([date]) => date.startsWith(monthPrefix));
 

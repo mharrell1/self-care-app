@@ -52,13 +52,15 @@ function Layout() {
   const [showAffirmationModal, setShowAffirmationModal] = useState(false);
 
   useEffect(() => {
+    // Only show the affirmation popup on the Dashboard (home route)
+    if (location.pathname !== '/') return;
     const d = new Date();
     const todayISO = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const lastSeen = localStorage.getItem('frog_affirmation_seen_date');
     if (lastSeen !== todayISO) {
       setShowAffirmationModal(true);
     }
-  }, []);
+  }, [location.pathname]);
 
   const handleCloseAffirmation = () => {
     const d = new Date();

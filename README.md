@@ -22,11 +22,11 @@ Earn coins and keep your frog happy by completing daily self-care tasks, trackin
   - **Vacation & Campsite Adventure Views**: View your equipped frog avatar in vacation mode or centered inside an outdoor campsite background frame during adventure logs.
 
 - **Activity & Stats Center**:
-  - **Monthly Active Calendar**: Monthly calendar grid marking every day you check in with a transparent pixel frog emoji marker (`pixel_frog_marker.png`).
-  - **Interactive Day Activity Log**: Click any day on the calendar to view past journal entries, recorded moods, and self-care check-ins.
+  - **Monthly Active Calendar**: Navigate through all 12 months to see your activity history. The calendar marks every day you check in with a transparent pixel frog emoji marker (`pixel_frog_marker.png`).
+  - **Interactive Day Activity Log**: Click any day on the calendar to view that day's uniquely assigned Froggy Affirmation, past journal entries, recorded moods, and self-care check-ins.
   - **Daily Check-In Streaks & Rewards**: Maintains consecutive check-in streaks and rewards users with bonus coins and Friendship XP.
   - **Pet Friendship Leveling System**: Level up your friendship status with your pet (Level 1: *New Friends* ➔ Level 2: *Good Pals* ➔ Level 3: *Best Friends* ➔ Level 4: *Soulmates* ➔ Level 5+: *Inseparable Partners*).
-  - **Mood & Self-Care Analytics**: Toggle between Calendar View and Habit Correlation Insights showing how hydration, soundscapes, and journaling correlate with positive mood days.
+  - **Mood & Self-Care Analytics**: Toggle between Calendar View and Habit Correlation Insights showing how hydration, soundscapes, and journaling correlate with positive mood days for the selected month.
 
 - **Self Care Suite**: 
   - **Pond Sound Machine**: A retro pixel music player featuring a Web Audio API ambient sound synthesizer engine with **Gentle Rain**, **Pond & Frogs** (soft water ripples with relaxing periodic frog croaks), and **Lofi Beats** (warm pentatonic synth chords).

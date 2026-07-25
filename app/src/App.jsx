@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Journal from './pages/Journal';
@@ -12,6 +12,24 @@ import Auth from './components/Auth';
 import { GameProvider } from './context/GameContext';
 import { auth, firebaseConfig } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+
+// Redirects to home on a fresh PWA launch (new session), preserving in-session navigation
+function HomeRedirect() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const isNewSession = !sessionStorage.getItem('app_session_started');
+    if (isNewSession) {
+      sessionStorage.setItem('app_session_started', '1');
+      if (location.pathname !== '/') {
+        navigate('/', { replace: true });
+      }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return null;
+}
 
 function App() {
   const [user, setUser] = useState(null);
@@ -43,6 +61,7 @@ function App() {
   return (
     <GameProvider>
       <BrowserRouter>
+        <HomeRedirect />
         <Routes>
           <Route path="/" element={<Layout />}>
             <Route index element={<Dashboard />} />
