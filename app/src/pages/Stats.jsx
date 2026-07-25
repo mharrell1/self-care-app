@@ -453,8 +453,8 @@ export default function Stats() {
               const completedChecklist = checklist.filter(t => t.completed);
               const waterCups = gameState?.waterCount || 0;
               const medTaken = gameState?.medicationTaken;
-              const todayISO = new Date().toISOString().split('T')[0];
-              const isBreathingDone = gameState?.lastBreathingDate === todayISO || (gameState?.breathingCount || 0) > 0;
+              const todayISO = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
+              const isBreathingDone = gameState?.lastBreathingDate === todayISO;
 
               return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>

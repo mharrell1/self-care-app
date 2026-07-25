@@ -52,7 +52,8 @@ function Layout() {
   const [showAffirmationModal, setShowAffirmationModal] = useState(false);
 
   useEffect(() => {
-    const todayISO = new Date().toISOString().split('T')[0];
+    const d = new Date();
+    const todayISO = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const lastSeen = localStorage.getItem('frog_affirmation_seen_date');
     if (lastSeen !== todayISO) {
       setShowAffirmationModal(true);
@@ -60,7 +61,8 @@ function Layout() {
   }, []);
 
   const handleCloseAffirmation = () => {
-    const todayISO = new Date().toISOString().split('T')[0];
+    const d = new Date();
+    const todayISO = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     localStorage.setItem('frog_affirmation_seen_date', todayISO);
     setShowAffirmationModal(false);
   };

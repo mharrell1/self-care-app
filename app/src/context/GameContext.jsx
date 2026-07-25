@@ -71,7 +71,7 @@ export function GameProvider({ children }) {
         if (updatedState) {
           const now = new Date();
           const todayStr = now.toLocaleDateString();
-          const todayISO = now.toISOString().split('T')[0];
+          const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
           // Active Days tracking
           let activeDaysList = Array.isArray(updatedState.activeDays) ? [...updatedState.activeDays] : [];

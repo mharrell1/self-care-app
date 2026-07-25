@@ -331,7 +331,7 @@ export default function SelfCare() {
           setBreathingPhase('inhale');
         } else {
           // Finished 3 full cycles!
-          const todayISO = new Date().toISOString().split('T')[0];
+          const d = new Date(); const todayISO = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
           updateGameState({ 
             happiness: Math.min(100, (gameState.happiness ?? 50) + 15), 
             coins: (gameState.coins ?? 100) + 15,
