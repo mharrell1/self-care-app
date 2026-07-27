@@ -77,40 +77,83 @@ export const getGameState = async (userId) => {
 };
 
 export const saveJournalEntry = async (userId, entryContent, photoUrl = null) => {
+  let storagePhotoUrl = photoUrl;
+  if (storagePhotoUrl && storagePhotoUrl.length > 150000) {
+    try {
+      storagePhotoUrl = await compressDataUrlForStorage(photoUrl, 800, 0.75);
+    } catch (e) {
+      console.warn("Journal photo compression warning:", e);
+    }
+  }
+
   const entry = {
+    id: Date.now().toString(),
     content: entryContent,
     date: new Date().toISOString(),
     userId: userId,
-    photoUrl: photoUrl
+    photoUrl: storagePhotoUrl
   };
 
-  if (!isConfigured) {
-    await delay(200);
-    entry.id = Date.now().toString();
+  // Always save to localStorage immediately for instant offline & local availability
+  try {
     const existing = JSON.parse(localStorage.getItem(`frog_journal_${userId}`) || '[]');
-    existing.unshift(entry);
-    localStorage.setItem(`frog_journal_${userId}`, JSON.stringify(existing));
+    const filtered = existing.filter(e => e.id !== entry.id);
+    filtered.unshift(entry);
+    localStorage.setItem(`frog_journal_${userId}`, JSON.stringify(filtered));
+  } catch (err) {
+    console.error("LocalStorage journal save error:", err);
+  }
+
+  if (!isConfigured) {
+    await delay(100);
     return entry;
   }
 
-  const docRef = await addDoc(collection(db, "journals"), entry);
-  entry.id = docRef.id;
+  try {
+    const docRef = await addDoc(collection(db, "journals"), entry);
+    entry.id = docRef.id;
+    // Update local id reference if Cloud DB assignment succeeds
+    try {
+      const existing = JSON.parse(localStorage.getItem(`frog_journal_${userId}`) || '[]');
+      const updated = existing.map(e => e.id === entry.id || (e.date === entry.date && e.content === entry.content) ? { ...e, id: docRef.id } : e);
+      localStorage.setItem(`frog_journal_${userId}`, JSON.stringify(updated));
+    } catch (e) {}
+  } catch (dbErr) {
+    console.error("Firestore journal save error:", dbErr);
+  }
+
   return entry;
 };
 
 export const getJournalEntries = async (userId) => {
+  const localEntries = JSON.parse(localStorage.getItem(`frog_journal_${userId}`) || '[]');
+
   if (!isConfigured) {
-    await delay(200);
-    return JSON.parse(localStorage.getItem(`frog_journal_${userId}`) || '[]');
+    await delay(100);
+    return localEntries;
   }
 
-  const q = query(collection(db, "journals"), where("userId", "==", userId));
-  const querySnapshot = await getDocs(q);
-  const entries = [];
-  querySnapshot.forEach((doc) => {
-    entries.push({ id: doc.id, ...doc.data() });
-  });
-  return entries.sort((a, b) => new Date(b.date) - new Date(a.date));
+  try {
+    const q = query(collection(db, "journals"), where("userId", "==", userId));
+    const querySnapshot = await getDocs(q);
+    const remoteEntries = [];
+    querySnapshot.forEach((doc) => {
+      remoteEntries.push({ id: doc.id, ...doc.data() });
+    });
+
+    const map = new Map();
+    [...localEntries, ...remoteEntries].forEach(item => {
+      const key = item.id || `${item.date}_${item.content?.substring(0, 10)}`;
+      if (!map.has(key) || (item.photoUrl && !map.get(key).photoUrl)) {
+        map.set(key, item);
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => new Date(b.date) - new Date(a.date));
+  } catch (e) {
+    console.error("Firestore getJournalEntries error:", e);
+    return localEntries;
+  }
 };
 
 export const updateJournalEntry = async (userId, entryId, newContent, photoUrl = undefined) => {

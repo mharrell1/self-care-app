@@ -685,8 +685,8 @@ function triggerDirectDownload(dataUrl, photoId) {
             style={{ 
               position: 'relative', 
               width: '100%', 
-              maxWidth: customBg && customBgAspect && customBgAspect < 1 ? '380px' : (cameraOrientation === 'portrait' ? '380px' : '500px'), 
-              aspectRatio: customBg && customBgAspect ? `${customBgAspect}` : (cameraOrientation === 'portrait' ? '3/4' : (cameraAspect ? `${cameraAspect}` : '4/3')), 
+              maxWidth: customBg && customBgAspect ? (customBgAspect < 1 ? '300px' : '480px') : (cameraOrientation === 'portrait' ? '290px' : '480px'), 
+              aspectRatio: customBg && customBgAspect ? `${customBgAspect}` : (cameraOrientation === 'portrait' ? '3/4' : '4/3'), 
               backgroundColor: 'var(--button-bg)',
               borderRadius: '15px',
               overflow: 'hidden',
