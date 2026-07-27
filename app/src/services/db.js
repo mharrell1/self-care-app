@@ -180,29 +180,45 @@ export const getJournalEntries = async (userId) => {
 };
 
 export const updateJournalEntry = async (userId, entryId, newContent, photoUrl = undefined) => {
-  try {
-    const existing = JSON.parse(localStorage.getItem(`frog_journal_${userId}`) || '[]');
-    const updated = existing.map(e => {
-      if (e.id === entryId) {
-        const updateObj = { ...e, content: newContent, editedAt: new Date().toISOString() };
-        if (photoUrl !== undefined) {
-          updateObj.photoUrl = photoUrl;
-        }
-        return updateObj;
-      }
-      return e;
-    });
-    localStorage.setItem(`frog_journal_${userId}`, JSON.stringify(updated));
-  } catch (err) {
-    console.error("Error updating local journal entry:", err);
+  const effectiveUserId = userId || 'default_user';
+
+  let storagePhotoUrl = photoUrl;
+  if (storagePhotoUrl && storagePhotoUrl.length > 150000) {
+    try {
+      storagePhotoUrl = await compressDataUrlForStorage(photoUrl, 800, 0.75);
+    } catch (e) {
+      console.warn("Edit photo compression warning:", e);
+    }
   }
 
+  // 1. Update across all local storage keys
+  const localKeys = [`frog_journal_${effectiveUserId}`, 'frog_journal_default_user', 'frog_journal_demo_user', 'frog_journal_null'];
+  localKeys.forEach(k => {
+    try {
+      const existing = JSON.parse(localStorage.getItem(k) || '[]');
+      const updated = existing.map(e => {
+        if (e.id === entryId) {
+          const updateObj = { ...e, content: newContent, editedAt: new Date().toISOString() };
+          if (photoUrl !== undefined) {
+            updateObj.photoUrl = storagePhotoUrl;
+          }
+          return updateObj;
+        }
+        return e;
+      });
+      localStorage.setItem(k, JSON.stringify(updated));
+    } catch (err) {
+      console.error("Error updating local journal entry:", err);
+    }
+  });
+
+  // 2. Update Firestore Cloud DB document
   if (isConfigured && entryId) {
     try {
       const docRef = doc(db, "journals", entryId);
       const updateData = { content: newContent, editedAt: new Date().toISOString() };
       if (photoUrl !== undefined) {
-        updateData.photoUrl = photoUrl;
+        updateData.photoUrl = storagePhotoUrl;
       }
       await updateDoc(docRef, updateData);
     } catch (e) {
