@@ -1200,49 +1200,7 @@ function triggerDirectDownload(dataUrl, photoId) {
             </div>
           )}
 
-          {/* Photobooth Album Strip (Always shows your saved photos directly under the camera) */}
-          {photos.length > 0 && (
-            <div style={{ marginTop: '1.25rem', width: '100%', maxWidth: '500px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                  Photobooth Album ({photos.length} {photos.length === 1 ? 'photo' : 'photos'})
-                </strong>
-                <button 
-                  className="btn" 
-                  onClick={() => setView('album')}
-                  style={{ fontSize: '0.75rem', padding: '0.25rem 0.65rem', fontWeight: 'bold' }}
-                >
-                  Open Full Album ➔
-                </button>
-              </div>
-              <div style={{ display: 'flex', gap: '0.6rem', overflowX: 'auto', padding: '0.25rem 0.25rem 0.5rem 0.25rem' }}>
-                {photos.map((p, idx) => (
-                  <div 
-                    key={p.id || idx}
-                    onClick={() => {
-                      setView('album');
-                      setSelectedIndex(idx);
-                    }}
-                    title="Click to view photo in album"
-                    style={{
-                      width: '80px',
-                      height: '60px',
-                      borderRadius: '8px',
-                      overflow: 'hidden',
-                      flexShrink: 0,
-                      border: '2px solid var(--window-border-dark)',
-                      cursor: 'pointer',
-                      boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
-                      backgroundColor: '#000',
-                      position: 'relative'
-                    }}
-                  >
-                    <img src={p.bg} alt={`Album photo ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+
 
           {/* Instant Photo Capture Preview Notification Card */}
           {capturedPreview && (
