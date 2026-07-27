@@ -469,7 +469,8 @@ export default function Photos() {
       id: Date.now().toString(),
       bg: compositeDataUrl,
       petName: gameState.petName || 'Froggy',
-      date: new Date().toISOString()
+      date: new Date().toISOString(),
+      orientation: cameraOrientation
     };
 
     // 2. IMMEDIATELY add to local photos state & show captured preview card overlay!
@@ -504,16 +505,35 @@ function dataURLtoBlob(dataurl) {
   }
 }
 
-function triggerDirectDownload(dataUrl, photoId) {
+async function triggerDirectDownload(dataUrl, photoId) {
   if (!dataUrl) return;
-  try {
-    const filename = `froggy_photo_${photoId || Date.now()}.png`;
-    const link = document.createElement('a');
-    link.download = filename;
+  const filename = `froggy_photo_${photoId || Date.now()}.png`;
 
-    const blob = dataURLtoBlob(dataUrl);
+  // On iOS / Mobile devices, use native Web Share API to open native Share Sheet for camera roll save
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const blob = dataURLtoBlob(dataUrl);
+
+  if (isMobile && blob && navigator.share) {
+    try {
+      const file = new File([blob], filename, { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: 'Froggy Photo',
+          text: 'Saved from Frogagotchi Photobooth!'
+        });
+        return;
+      }
+    } catch (shareErr) {
+      console.log("Web Share cancelled or fallback:", shareErr);
+    }
+  }
+
+  try {
     if (blob) {
       const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = filename;
       link.href = blobUrl;
       document.body.appendChild(link);
       link.click();
@@ -522,6 +542,8 @@ function triggerDirectDownload(dataUrl, photoId) {
         URL.revokeObjectURL(blobUrl);
       }, 1000);
     } else {
+      const link = document.createElement('a');
+      link.download = filename;
       link.href = dataUrl;
       document.body.appendChild(link);
       link.click();
@@ -574,9 +596,10 @@ function triggerDirectDownload(dataUrl, photoId) {
     setIsDownloading(true);
 
     try {
+      const targetMode = targetPhoto.orientation || cameraOrientation;
       const dataUrl = (targetPhoto.bg && targetPhoto.bg.startsWith('data:image/png'))
         ? targetPhoto.bg 
-        : await createSingleCompositePhoto(targetPhoto.bg, targetPhoto.stickerPos, targetPhoto);
+        : await createSingleCompositePhoto(targetPhoto.bg, targetPhoto.stickerPos, targetPhoto, targetPhoto.stickerSize || stickerSize, targetMode);
 
       triggerDirectDownload(dataUrl, targetPhoto.id);
 
