@@ -1,7 +1,57 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useGame } from '../context/GameContext';
 import FrogAvatar from '../components/FrogAvatar';
-import { savePhoto, getPhotos, deletePhoto } from '../services/db';
+const AlbumPhotoCard = ({ photo, onClick }) => {
+  const [aspect, setAspect] = useState(photo.orientation === 'portrait' ? '3/4' : '4/3');
+
+  const handleImageLoad = (e) => {
+    const { naturalWidth, naturalHeight } = e.target;
+    if (naturalWidth && naturalHeight) {
+      setAspect(`${naturalWidth} / ${naturalHeight}`);
+    }
+  };
+
+  return (
+    <div 
+      id={`photo-thumb-${photo.id}`}
+      onClick={onClick}
+      title="Click to enlarge & view options!"
+      style={{ 
+        position: 'relative', 
+        aspectRatio: aspect,
+        backgroundColor: '#111',
+        borderRadius: '10px',
+        overflow: 'hidden',
+        boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+        cursor: 'pointer',
+        border: '2px solid var(--window-border-dark)',
+        transition: 'transform 0.15s ease'
+      }}>
+      <img 
+        src={photo.bg} 
+        alt="Album photo" 
+        onLoad={handleImageLoad}
+        style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', backgroundColor: '#000' }} 
+      />
+      <div 
+        id={`date-${photo.id}`}
+        style={{
+          position: 'absolute',
+          bottom: '5px',
+          left: '10px',
+          color: 'white',
+          textShadow: '1px 1px 2px black',
+          fontSize: '0.7rem',
+          backgroundColor: 'rgba(0,0,0,0.4)',
+          padding: '0.1rem 0.4rem',
+          borderRadius: '4px'
+        }}
+      >
+        {new Date(photo.date).toLocaleDateString()}
+      </div>
+    </div>
+  );
+};
 
 export default function Photos() {
   const { gameState, userId } = useGame();
@@ -1342,40 +1392,11 @@ async function triggerDirectDownload(dataUrl, photoId) {
               </p>
             ) : (
               photos.map((photo, index) => (
-                <div 
+                <AlbumPhotoCard 
                   key={photo.id}
-                  id={`photo-thumb-${photo.id}`}
+                  photo={photo}
                   onClick={() => setSelectedIndex(index)}
-                  title="Click to enlarge & view options!"
-                  style={{ 
-                    position: 'relative', 
-                    aspectRatio: photo.orientation === 'portrait' ? '3/4' : '4/3',
-                    backgroundColor: '#111',
-                    borderRadius: '10px',
-                    overflow: 'hidden',
-                    boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
-                    cursor: 'pointer',
-                    border: '2px solid var(--window-border-dark)',
-                    transition: 'transform 0.15s ease'
-                  }}>
-                  <img src={photo.bg} alt="Background" style={{ width: '100%', height: '100%', objectFit: 'contain', backgroundColor: '#000' }} />
-                  <div 
-                    id={`date-${photo.id}`}
-                    style={{
-                      position: 'absolute',
-                      bottom: '5px',
-                      left: '10px',
-                      color: 'white',
-                      textShadow: '1px 1px 2px black',
-                      fontSize: '0.7rem',
-                      backgroundColor: 'rgba(0,0,0,0.4)',
-                      padding: '0.1rem 0.4rem',
-                      borderRadius: '4px'
-                    }}
-                  >
-                    {new Date(photo.date).toLocaleDateString()}
-                  </div>
-                </div>
+                />
               ))
             )}
           </div>
