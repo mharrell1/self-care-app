@@ -290,10 +290,16 @@ export default function SelfCare() {
     await saveMood(userId, entry);
     setMoods([...moods, entry]);
     
-    // Reward for tracking mood
-    if (gameState.coins < 1000) {
-      updateGameState({ coins: gameState.coins + 20, happiness: Math.min(100, gameState.happiness + 15) });
-    }
+    const now = new Date();
+    const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const updatedDailyMoodLogs = { ...(gameState?.dailyMoodLogs || {}), [todayISO]: mood };
+
+    // Reward for tracking mood & sync dailyMoodLogs in gameState
+    updateGameState({ 
+      dailyMoodLogs: updatedDailyMoodLogs,
+      coins: (gameState?.coins ?? 100) + 20, 
+      happiness: Math.min(100, (gameState?.happiness ?? 50) + 15) 
+    });
   };
 
   const handleSaveMoodToJournal = async () => {

@@ -154,9 +154,14 @@ export function GameProvider({ children }) {
             if (hoursPassed >= 2 && !updatedState.pendingAdventure) {
               const randomAdv = ADVENTURES[Math.floor(Math.random() * ADVENTURES.length)];
               const adventure = {
+                id: Date.now().toString() + '_' + Math.random().toString(36).substring(2, 6),
                 ...randomAdv,
-                timestamp: now.toISOString()
+                timestamp: now.toISOString(),
+                dateISO: todayISO
               };
+              const dailyAdventures = Array.isArray(updatedState.dailyAdventures) ? [...updatedState.dailyAdventures] : [];
+              dailyAdventures.push(adventure);
+              updatedState.dailyAdventures = dailyAdventures;
               updatedState.pendingAdventure = adventure;
               updatedState.lastAdventure = adventure;
               updatedState.coins = (updatedState.coins ?? 100) + randomAdv.coins;
@@ -212,14 +217,22 @@ export function GameProvider({ children }) {
 
   const triggerAdventure = () => {
     triggerHeart();
+    const now = new Date();
+    const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const randomAdv = ADVENTURES[Math.floor(Math.random() * ADVENTURES.length)];
     const adventure = {
+      id: Date.now().toString() + '_' + Math.random().toString(36).substring(2, 6),
       ...randomAdv,
-      timestamp: new Date().toISOString()
+      timestamp: now.toISOString(),
+      dateISO: todayISO
     };
+    const dailyAdventures = Array.isArray(gameState?.dailyAdventures) ? [...gameState.dailyAdventures] : [];
+    dailyAdventures.push(adventure);
+
     updateGameState({
       pendingAdventure: adventure,
       lastAdventure: adventure,
+      dailyAdventures,
       coins: (gameState?.coins ?? 100) + randomAdv.coins,
       happiness: Math.min(100, (gameState?.happiness ?? 50) + randomAdv.happiness)
     });

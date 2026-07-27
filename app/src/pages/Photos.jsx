@@ -13,11 +13,19 @@ export default function Photos() {
   const [cameraEnabled, setCameraEnabled] = useState(true);
   const [facingMode, setFacingMode] = useState('user'); // 'user' (front) or 'environment' (back)
   const [customBg, setCustomBg] = useState(null);
+  const [customBgAspect, setCustomBgAspect] = useState(null);
+  const [customBgDimensions, setCustomBgDimensions] = useState(null);
+  const [cameraOrientation, setCameraOrientation] = useState('landscape'); // 'landscape' or 'portrait'
+  const [cameraAspect, setCameraAspect] = useState(null);
   const [cameraError, setCameraError] = useState(null);
   
-  // Draggable Sticker State (% position in container)
+  // Draggable & Resizable Sticker State (% position & size in container)
   const [stickerPos, setStickerPos] = useState({ x: 60, y: 60 });
+  const [stickerSize, setStickerSize] = useState(28); // percent width (default 28%, min 12%, max 65%)
   const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const dragStartRef = useRef(null);
+  const resizeStartRef = useRef(null);
   
   // Selected Frog Sticker Choice State
   const [stickerChoice, setStickerChoice] = useState('current'); // 'current', 'partyhat', 'necklace', 'basic'
@@ -29,6 +37,7 @@ export default function Photos() {
   const [capturedPreview, setCapturedPreview] = useState(null);
   const [mobileSaveModalUrl, setMobileSaveModalUrl] = useState(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [showSaveToast, setShowSaveToast] = useState(false);
   const previewTimerRef = useRef(null);
 
   const [stream, setStream] = useState(null);
@@ -37,6 +46,11 @@ export default function Photos() {
   const photoboothRef = useRef(null);
 
   const selectedPhoto = selectedIndex !== null ? photos[selectedIndex] : null;
+
+  // Always load saved photos on mount or userId change
+  useEffect(() => {
+    loadPhotos();
+  }, [userId]);
 
   // Start or stop camera based on view, cameraEnabled, and facingMode state
   useEffect(() => {
@@ -148,36 +162,69 @@ export default function Photos() {
     reader.onload = (event) => {
       const bgDataUrl = event.target?.result;
       if (bgDataUrl) {
-        setCustomBg(bgDataUrl);
+        const img = new Image();
+        img.onload = () => {
+          setCustomBg(bgDataUrl);
+          setCustomBgAspect(img.width / img.height);
+          setCustomBgDimensions({ width: img.width, height: img.height });
+        };
+        img.src = bgDataUrl;
       }
     };
     reader.readAsDataURL(file);
   };
 
-  // Dragging Handlers for Frog Sticker
-  const handlePointerDown = (e) => {
-    e.preventDefault();
+  // Dragging & Resizing Handlers for Frog Sticker
+  const handleStickerPointerDown = (e) => {
+    e.stopPropagation();
     setIsDragging(true);
+    const clientX = e.clientX ?? e.touches?.[0]?.clientX;
+    const clientY = e.clientY ?? e.touches?.[0]?.clientY;
+    dragStartRef.current = { clientX, clientY, startX: stickerPos.x, startY: stickerPos.y };
+  };
+
+  const handleResizePointerDown = (e) => {
+    e.stopPropagation();
+    setIsResizing(true);
+    const clientX = e.clientX ?? e.touches?.[0]?.clientX;
+    const clientY = e.clientY ?? e.touches?.[0]?.clientY;
+    resizeStartRef.current = { clientX, clientY, startSize: stickerSize };
   };
 
   const handlePointerMove = (e) => {
-    if (!isDragging || !photoboothRef.current) return;
+    if ((!isDragging && !isResizing) || !photoboothRef.current) return;
     const rect = photoboothRef.current.getBoundingClientRect();
     const clientX = e.clientX ?? e.touches?.[0]?.clientX;
     const clientY = e.clientY ?? e.touches?.[0]?.clientY;
     if (clientX === undefined || clientY === undefined) return;
 
-    let x = ((clientX - rect.left) / rect.width) * 100 - 14;
-    let y = ((clientY - rect.top) / rect.height) * 100 - 14;
+    if (isResizing && resizeStartRef.current) {
+      const dx = clientX - resizeStartRef.current.clientX;
+      const deltaPercent = (dx / rect.width) * 100;
+      const newSize = Math.max(12, Math.min(65, resizeStartRef.current.startSize + deltaPercent));
+      setStickerSize(newSize);
+      return;
+    }
 
-    x = Math.max(0, Math.min(72, x));
-    y = Math.max(0, Math.min(72, y));
+    if (isDragging && dragStartRef.current) {
+      const dx = clientX - dragStartRef.current.clientX;
+      const dy = clientY - dragStartRef.current.clientY;
 
-    setStickerPos({ x, y });
+      let x = dragStartRef.current.startX + (dx / rect.width) * 100;
+      let y = dragStartRef.current.startY + (dy / rect.height) * 100;
+
+      x = Math.max(0, Math.min(100 - stickerSize, x));
+      y = Math.max(0, Math.min(100 - stickerSize, y));
+
+      setStickerPos({ x, y });
+    }
   };
 
   const handlePointerUp = () => {
     setIsDragging(false);
+    setIsResizing(false);
+    dragStartRef.current = null;
+    resizeStartRef.current = null;
   };
 
   // Compute active frog state for chosen sticker option
@@ -197,11 +244,10 @@ export default function Photos() {
   const activeFrogState = getActiveFrogState();
 
   // Pure HTML5 2D Canvas Composite Generator (Single Merged High-Res PNG Photo)
-  const createSingleCompositePhoto = async (bgRaw, pos, frogState) => {
+  const createSingleCompositePhoto = async (bgRaw, pos, frogState, sizePercent = stickerSize, mode = cameraOrientation, customDim = customBgDimensions) => {
     const canvas = document.createElement('canvas');
-    canvas.width = 1200;
-    canvas.height = 900;
-    const ctx = canvas.getContext('2d');
+    let targetW = mode === 'portrait' ? 900 : 1200;
+    let targetH = mode === 'portrait' ? 1200 : 900;
 
     const loadImage = (src) => {
       return new Promise((resolve) => {
@@ -223,7 +269,7 @@ export default function Photos() {
     };
 
     // Helper to draw an image centered with preserved aspect ratio (mimics CSS object-fit: contain)
-    const drawContainImage = (img, dx, dy, dw, dh) => {
+    const drawContainImage = (ctx, img, dx, dy, dw, dh) => {
       const imgAspect = img.width / img.height;
       const boxAspect = dw / dh;
       let drawW, drawH, drawX, drawY;
@@ -243,35 +289,67 @@ export default function Photos() {
       ctx.drawImage(img, drawX, drawY, drawW, drawH);
     };
 
-    // 1. Draw Background Image with 4:3 Cover-Fit alignment
     if (bgRaw) {
       const bgImg = await loadImage(bgRaw);
       if (bgImg) {
-        const targetAspect = 1200 / 900;
-        const imgAspect = bgImg.width / bgImg.height;
-        let srcW, srcH, srcX, srcY;
-
-        if (imgAspect > targetAspect) {
-          srcH = bgImg.height;
-          srcW = bgImg.height * targetAspect;
-          srcX = (bgImg.width - srcW) / 2;
-          srcY = 0;
+        if (customDim || (bgRaw === customBg && customBgDimensions)) {
+          const naturalW = customDim?.width || customBgDimensions?.width || bgImg.width;
+          const naturalH = customDim?.height || customBgDimensions?.height || bgImg.height;
+          const maxDim = 1600;
+          let scale = 1;
+          if (Math.max(naturalW, naturalH) > maxDim) {
+            scale = maxDim / Math.max(naturalW, naturalH);
+          }
+          targetW = Math.round(naturalW * scale);
+          targetH = Math.round(naturalH * scale);
+          canvas.width = targetW;
+          canvas.height = targetH;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(bgImg, 0, 0, targetW, targetH);
         } else {
-          srcW = bgImg.width;
-          srcH = bgImg.width / targetAspect;
-          srcX = 0;
-          srcY = (bgImg.height - srcH) / 2;
-        }
+          canvas.width = targetW;
+          canvas.height = targetH;
+          const ctx = canvas.getContext('2d');
+          const targetAspect = targetW / targetH;
+          const imgAspect = bgImg.width / bgImg.height;
+          let srcW, srcH, srcX, srcY;
 
-        ctx.drawImage(bgImg, srcX, srcY, srcW, srcH, 0, 0, 1200, 900);
+          if (imgAspect > targetAspect) {
+            srcH = bgImg.height;
+            srcW = bgImg.height * targetAspect;
+            srcX = (bgImg.width - srcW) / 2;
+            srcY = 0;
+          } else {
+            srcW = bgImg.width;
+            srcH = bgImg.width / targetAspect;
+            srcX = 0;
+            srcY = (bgImg.height - srcH) / 2;
+          }
+
+          ctx.drawImage(bgImg, srcX, srcY, srcW, srcH, 0, 0, targetW, targetH);
+        }
       } else {
-        const grad = ctx.createLinearGradient(0, 0, 1200, 900);
+        canvas.width = targetW;
+        canvas.height = targetH;
+        const ctx = canvas.getContext('2d');
+        const grad = ctx.createLinearGradient(0, 0, targetW, targetH);
         grad.addColorStop(0, '#f8bbd0');
         grad.addColorStop(1, '#f48fb1');
         ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, 1200, 900);
+        ctx.fillRect(0, 0, targetW, targetH);
       }
+    } else {
+      canvas.width = targetW;
+      canvas.height = targetH;
+      const ctx = canvas.getContext('2d');
+      const grad = ctx.createLinearGradient(0, 0, targetW, targetH);
+      grad.addColorStop(0, '#f8bbd0');
+      grad.addColorStop(1, '#f48fb1');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, targetW, targetH);
     }
+
+    const ctx = canvas.getContext('2d');
 
     // 2. Determine Frog Base Image
     const getFrogSrc = (p) => {
@@ -288,13 +366,14 @@ export default function Photos() {
 
     if (frogImg) {
       const pPos = pos || { x: 60, y: 60 };
-      const destX = (pPos.x / 100) * 1200;
-      const destY = (pPos.y / 100) * 900;
-      const stickerBoxW = 0.28 * 1200; // 336px
-      const stickerBoxH = 0.28 * 1200; // 336px
+      const destX = (pPos.x / 100) * canvas.width;
+      const destY = (pPos.y / 100) * canvas.height;
+      const sz = (sizePercent || stickerSize || 28) / 100;
+      const stickerBoxW = sz * canvas.width;
+      const stickerBoxH = sz * canvas.width;
 
       // Draw Frog Avatar Base with object-fit contain matching
-      drawContainImage(frogImg, destX, destY, stickerBoxW, stickerBoxH);
+      drawContainImage(ctx, frogImg, destX, destY, stickerBoxW, stickerBoxH);
 
       // Draw Clothing Accessories matching FrogAvatar percentage math
       const items = frogState.equippedItems || (frogState.equippedItem && frogState.equippedItem !== 'base' ? [frogState.equippedItem] : []);
@@ -340,11 +419,13 @@ export default function Photos() {
         const vH = videoRef.current.videoHeight || 480;
 
         const canvas = document.createElement('canvas');
-        canvas.width = 1200;
-        canvas.height = 900;
+        const targetW = cameraOrientation === 'portrait' ? 900 : 1200;
+        const targetH = cameraOrientation === 'portrait' ? 1200 : 900;
+        canvas.width = targetW;
+        canvas.height = targetH;
         const ctx = canvas.getContext('2d');
 
-        const targetAspect = 1200 / 900;
+        const targetAspect = targetW / targetH;
         const sourceAspect = vW / vH;
 
         let srcW = vW, srcH = vH, srcX = 0, srcY = 0;
@@ -360,7 +441,7 @@ export default function Photos() {
           srcY = (vH - srcH) / 2;
         }
 
-        ctx.drawImage(videoRef.current, srcX, srcY, srcW, srcH, 0, 0, 1200, 900);
+        ctx.drawImage(videoRef.current, srcX, srcY, srcW, srcH, 0, 0, targetW, targetH);
         bgDataUrl = canvas.toDataURL('image/jpeg', 0.9);
       } catch (err) {
         console.error("Error capturing video frame:", err);
@@ -369,18 +450,20 @@ export default function Photos() {
 
     if (!bgDataUrl) {
       const canvas = document.createElement('canvas');
-      canvas.width = 1200;
-      canvas.height = 900;
+      const targetW = cameraOrientation === 'portrait' ? 900 : 1200;
+      const targetH = cameraOrientation === 'portrait' ? 1200 : 900;
+      canvas.width = targetW;
+      canvas.height = targetH;
       const ctx = canvas.getContext('2d');
-      const grad = ctx.createLinearGradient(0, 0, 1200, 900);
+      const grad = ctx.createLinearGradient(0, 0, targetW, targetH);
       grad.addColorStop(0, '#f8bbd0');
       grad.addColorStop(1, '#f48fb1');
       ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, 1200, 900);
+      ctx.fillRect(0, 0, targetW, targetH);
       bgDataUrl = canvas.toDataURL('image/jpeg', 0.9);
     }
 
-    const compositeDataUrl = await createSingleCompositePhoto(bgDataUrl, stickerPos, activeFrogState);
+    const compositeDataUrl = await createSingleCompositePhoto(bgDataUrl, stickerPos, activeFrogState, stickerSize, cameraOrientation, customBgDimensions);
 
     const photoPayload = {
       id: Date.now().toString(),
@@ -389,20 +472,88 @@ export default function Photos() {
       date: new Date().toISOString()
     };
 
-    // 2. IMMEDIATELY show captured preview card overlay over viewport (GUARANTEED feedback!)
+    // 2. IMMEDIATELY add to local photos state & show captured preview card overlay!
+    setPhotos(prev => [photoPayload, ...prev.filter(p => p.id !== photoPayload.id)]);
     setCapturedPreview(photoPayload);
 
-    if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
-    previewTimerRef.current = setTimeout(() => {
-      setCapturedPreview(null);
-    }, 4500);
-
-    // 3. Save photo asynchronously in background
+    // 3. Save photo asynchronously to persistent storage
     try {
-      await savePhoto(userId, photoPayload);
-      loadPhotos();
+      savePhoto(userId, photoPayload);
     } catch (saveErr) {
       console.error("Error saving photo to DB:", saveErr);
+    }
+
+    // 4. Automatically download image file to device Downloads folder immediately
+    downloadPhoto(photoPayload.id);
+  };
+
+function dataURLtoBlob(dataurl) {
+  try {
+    const arr = dataurl.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
+  } catch (e) {
+    console.error("Error converting data URL to Blob:", e);
+    return null;
+  }
+}
+
+function triggerDirectDownload(dataUrl, photoId) {
+  if (!dataUrl) return;
+  try {
+    const filename = `froggy_photo_${photoId || Date.now()}.png`;
+    const link = document.createElement('a');
+    link.download = filename;
+
+    const blob = dataURLtoBlob(dataUrl);
+    if (blob) {
+      const blobUrl = URL.createObjectURL(blob);
+      link.href = blobUrl;
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        if (document.body.contains(link)) document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+      }, 1000);
+    } else {
+      link.href = dataUrl;
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        if (document.body.contains(link)) document.body.removeChild(link);
+      }, 500);
+    }
+  } catch (err) {
+    console.error("Direct download error:", err);
+  }
+}
+
+  const handleSavePhotoClick = async (e, photo) => {
+    if (e) e.stopPropagation();
+    const target = photo || capturedPreview;
+    if (!target || !target.bg) return;
+
+    // 1. Synchronously trigger browser file download IMMEDIATELY during active user click event
+    triggerDirectDownload(target.bg, target.id);
+
+    // 2. Add to React state & navigate to album view
+    setPhotos(prev => prev.some(p => p.id === target.id) ? prev : [target, ...prev]);
+    setView('album');
+    setCapturedPreview(null);
+    setShowSaveToast(true);
+    setTimeout(() => setShowSaveToast(false), 3000);
+
+    // 3. Save to persistent DB storage asynchronously in background
+    try {
+      await savePhoto(userId, target);
+    } catch (err) {
+      console.warn("Save photo warning:", err);
     }
   };
 
@@ -412,54 +563,25 @@ export default function Photos() {
     const targetPhoto = photos.find(p => p.id === photoId) || selectedPhoto || capturedPreview;
     if (!targetPhoto) return;
     
+    // Ensure photo is saved to album state and persistent DB storage
+    setPhotos(prev => prev.some(p => p.id === targetPhoto.id) ? prev : [targetPhoto, ...prev]);
+    try {
+      savePhoto(userId, targetPhoto);
+    } catch (err) {
+      console.warn("Save photo warning:", err);
+    }
+
     setIsDownloading(true);
 
     try {
-      // Use single merged composite PNG photo directly
       const dataUrl = (targetPhoto.bg && targetPhoto.bg.startsWith('data:image/png'))
         ? targetPhoto.bg 
         : await createSingleCompositePhoto(targetPhoto.bg, targetPhoto.stickerPos, targetPhoto);
 
-      const res = await fetch(dataUrl);
-      const blob = await res.blob();
+      triggerDirectDownload(dataUrl, targetPhoto.id);
 
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || ('ontouchstart' in window && window.innerWidth < 1024);
-
-      if (isMobile) {
-        // Mobile devices (iOS Safari / Android): attempt native share sheet for Camera Roll, or fallback to mobile modal
-        let sharedSuccessfully = false;
-        if (blob && navigator.canShare) {
-          try {
-            const file = new File([blob], `froggy_photo_${photoId}.png`, { type: 'image/png' });
-            if (navigator.canShare({ files: [file] })) {
-              await navigator.share({
-                files: [file],
-                title: 'Froggy Photo',
-                text: 'Check out my froggy photo!'
-              });
-              sharedSuccessfully = true;
-            }
-          } catch (shareErr) {
-            if (shareErr.name === 'AbortError') {
-              sharedSuccessfully = true;
-            } else {
-              console.warn("Web Share API failed, falling back to download modal:", shareErr);
-            }
-          }
-        }
-
-        if (!sharedSuccessfully) {
-          setMobileSaveModalUrl(dataUrl);
-        }
-      } else {
-        // Desktop browsers (macOS / Windows): trigger direct file download to Downloads folder
-        const link = document.createElement('a');
-        link.download = `froggy_photo_${photoId}.png`;
-        link.href = dataUrl;
-        document.body.appendChild(link);
-        link.click();
-        setTimeout(() => document.body.removeChild(link), 150);
-      }
+      setShowSaveToast(true);
+      setTimeout(() => setShowSaveToast(false), 3000);
     } catch (err) {
       console.error("Failed to download photo", err);
     } finally {
@@ -563,8 +685,8 @@ export default function Photos() {
             style={{ 
               position: 'relative', 
               width: '100%', 
-              maxWidth: '500px', 
-              aspectRatio: '4/3', 
+              maxWidth: customBg && customBgAspect && customBgAspect < 1 ? '380px' : (cameraOrientation === 'portrait' ? '380px' : '500px'), 
+              aspectRatio: customBg && customBgAspect ? `${customBgAspect}` : (cameraOrientation === 'portrait' ? '3/4' : (cameraAspect ? `${cameraAspect}` : '4/3')), 
               backgroundColor: 'var(--button-bg)',
               borderRadius: '15px',
               overflow: 'hidden',
@@ -574,7 +696,8 @@ export default function Photos() {
               alignItems: 'center',
               justify: 'center',
               userSelect: 'none',
-              touchAction: 'none'
+              touchAction: 'none',
+              transition: 'aspect-ratio 0.3s ease, max-width 0.3s ease'
             }}
           >
             {/* Flash Overlay */}
@@ -607,49 +730,167 @@ export default function Photos() {
             
             {/* Live Camera Feed or Custom Background */}
             {customBg ? (
-              <img src={customBg} alt="Background" style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }} />
+              <img src={customBg} alt="Background" style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} />
             ) : stream ? (
               <video 
                 ref={videoRef} 
                 autoPlay 
                 playsInline 
                 muted 
+                onLoadedMetadata={() => {
+                  if (videoRef.current && videoRef.current.videoWidth && videoRef.current.videoHeight) {
+                    setCameraAspect(videoRef.current.videoWidth / videoRef.current.videoHeight);
+                  }
+                }}
                 style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }}
               />
             ) : null}
             
-            {/* Draggable Frog Sticker Overlay */}
+            {/* Draggable & Resizable Frog Sticker Overlay with Transparent Placement Box */}
             <div 
-              onPointerDown={handlePointerDown}
-              onTouchStart={handlePointerDown}
-              title="Drag me anywhere!"
+              onPointerDown={handleStickerPointerDown}
+              onTouchStart={handleStickerPointerDown}
+              title="Drag inside to move, drag corner handles to enlarge/resize!"
               style={{ 
                 position: 'absolute', 
                 top: `${stickerPos.y}%`, 
                 left: `${stickerPos.x}%`,
-                width: '28%',
+                width: `${stickerSize}%`,
                 aspectRatio: '1/1',
                 zIndex: 20,
                 cursor: isDragging ? 'grabbing' : 'grab',
-                filter: isDragging ? 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' : 'none',
-                transition: isDragging ? 'none' : 'transform 0.1s ease'
+                border: '2px dashed rgba(255, 105, 180, 0.85)',
+                backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                borderRadius: '10px',
+                boxSizing: 'border-box',
+                boxShadow: '0 0 8px rgba(0,0,0,0.15)',
+                transition: isDragging || isResizing ? 'none' : 'all 0.1s ease'
               }}
             >
               <FrogAvatar gameState={activeFrogState} />
-              <div style={{
-                position: 'absolute',
-                top: '-8px',
-                right: '-8px',
-                backgroundColor: 'var(--window-title-bg)',
-                color: 'white',
-                fontSize: '0.65rem',
-                padding: '2px 5px',
-                borderRadius: '8px',
-                border: '1px solid var(--window-border-dark)',
-                pointerEvents: 'none',
-                fontWeight: 'bold'
-              }}>
-                Drag
+              
+              {/* Corner Handle: Top-Left Resize */}
+              <div 
+                onPointerDown={handleResizePointerDown}
+                onTouchStart={handleResizePointerDown}
+                title="Drag to resize frog"
+                style={{
+                  position: 'absolute',
+                  top: '-10px',
+                  left: '-10px',
+                  width: '20px',
+                  height: '20px',
+                  boxSizing: 'border-box',
+                  backgroundColor: 'var(--window-title-bg)',
+                  color: 'white',
+                  borderRadius: '5px',
+                  border: '2px solid white',
+                  boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+                  cursor: 'nwse-resize',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justify: 'center',
+                  padding: 0,
+                  margin: 0,
+                  zIndex: 25
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', margin: 'auto' }}>
+                  <path d="M3 3L9 9M3 6V3H6M6 9H9V6" />
+                </svg>
+              </div>
+
+              {/* Corner Handle: Top-Right Resize */}
+              <div 
+                onPointerDown={handleResizePointerDown}
+                onTouchStart={handleResizePointerDown}
+                title="Drag to resize frog"
+                style={{
+                  position: 'absolute',
+                  top: '-10px',
+                  right: '-10px',
+                  width: '20px',
+                  height: '20px',
+                  boxSizing: 'border-box',
+                  backgroundColor: 'var(--window-title-bg)',
+                  color: 'white',
+                  borderRadius: '5px',
+                  border: '2px solid white',
+                  boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+                  cursor: 'nesw-resize',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justify: 'center',
+                  padding: 0,
+                  margin: 0,
+                  zIndex: 25
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', margin: 'auto' }}>
+                  <path d="M9 3L3 9M6 3H9V6M3 6V9H6" />
+                </svg>
+              </div>
+
+              {/* Corner Handle: Bottom-Left Resize */}
+              <div 
+                onPointerDown={handleResizePointerDown}
+                onTouchStart={handleResizePointerDown}
+                title="Drag to resize frog"
+                style={{
+                  position: 'absolute',
+                  bottom: '-10px',
+                  left: '-10px',
+                  width: '20px',
+                  height: '20px',
+                  boxSizing: 'border-box',
+                  backgroundColor: 'var(--window-title-bg)',
+                  color: 'white',
+                  borderRadius: '5px',
+                  border: '2px solid white',
+                  boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+                  cursor: 'nesw-resize',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justify: 'center',
+                  padding: 0,
+                  margin: 0,
+                  zIndex: 25
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', margin: 'auto' }}>
+                  <path d="M9 3L3 9M6 3H9V6M3 6V9H6" />
+                </svg>
+              </div>
+
+              {/* Corner Handle: Bottom-Right Resize */}
+              <div 
+                onPointerDown={handleResizePointerDown}
+                onTouchStart={handleResizePointerDown}
+                title="Drag to resize frog"
+                style={{
+                  position: 'absolute',
+                  bottom: '-10px',
+                  right: '-10px',
+                  width: '20px',
+                  height: '20px',
+                  boxSizing: 'border-box',
+                  backgroundColor: 'var(--window-title-bg)',
+                  color: 'white',
+                  borderRadius: '5px',
+                  border: '2px solid white',
+                  boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+                  cursor: 'nwse-resize',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justify: 'center',
+                  padding: 0,
+                  margin: 0,
+                  zIndex: 25
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', margin: 'auto' }}>
+                  <path d="M3 3L9 9M3 6V3H6M6 9H9V6" />
+                </svg>
               </div>
             </div>
 
@@ -682,27 +923,28 @@ export default function Photos() {
                   boxSizing: 'border-box'
                 }}>
                   <div style={{ fontWeight: 'bold', fontSize: '1.05rem', color: 'var(--text-primary)' }}>
-                    Photo Captured!
+                    Photo Saved to Album & Downloads!
                   </div>
                   
                   {/* Photo Preview Thumbnail */}
                   <div style={{
                     position: 'relative',
                     width: '180px',
-                    aspectRatio: '4/3',
+                    aspectRatio: capturedPreview.bg ? 'auto' : '4/3',
+                    maxHeight: '140px',
                     borderRadius: '8px',
                     overflow: 'hidden',
                     border: '2px solid var(--window-border-dark)',
                     backgroundColor: '#000',
                     boxShadow: '0 3px 8px rgba(0,0,0,0.2)'
                   }}>
-                    <img src={capturedPreview.bg} alt="Captured Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={capturedPreview.bg} alt="Captured Preview" style={{ maxWidth: '100%', maxHeight: '140px', objectFit: 'contain', display: 'block', margin: 'auto' }} />
                   </div>
 
                   <div style={{ display: 'flex', gap: '0.4rem', width: '100%', justifyContent: 'center', flexWrap: 'wrap' }}>
                     <button
                       className="btn"
-                      onClick={() => downloadPhoto(capturedPreview.id)}
+                      onClick={(e) => handleSavePhotoClick(e, capturedPreview)}
                       style={{
                         fontSize: '0.8rem',
                         padding: '0.35rem 0.75rem',
@@ -746,17 +988,53 @@ export default function Photos() {
               </div>
             )}
           </div>
-          
-          {/* Frog Sticker Choice Selector */}
-          <div style={{ marginTop: '1rem', width: '100%', maxWidth: '500px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>Select Frog Sticker:</span>
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+
+          {/* Mode & Sticker Controls Toolbar */}
+          <div style={{ marginTop: '0.75rem', width: '100%', maxWidth: '500px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+            
+            {/* Camera Orientation Mode Toggles (Portrait vs Landscape) */}
+            {!customBg && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>Orientation Mode:</span>
+                <button
+                  className="btn"
+                  onClick={() => setCameraOrientation('landscape')}
+                  style={{
+                    fontSize: '0.8rem',
+                    padding: '0.25rem 0.7rem',
+                    backgroundColor: cameraOrientation === 'landscape' ? 'var(--window-title-bg)' : 'var(--button-bg)',
+                    color: cameraOrientation === 'landscape' ? 'var(--window-title-text)' : 'var(--text-primary)',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  Landscape
+                </button>
+                <button
+                  className="btn"
+                  onClick={() => setCameraOrientation('portrait')}
+                  style={{
+                    fontSize: '0.8rem',
+                    padding: '0.25rem 0.7rem',
+                    backgroundColor: cameraOrientation === 'portrait' ? 'var(--window-title-bg)' : 'var(--button-bg)',
+                    color: cameraOrientation === 'portrait' ? 'var(--window-title-text)' : 'var(--text-primary)',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  Portrait
+                </button>
+              </div>
+            )}
+
+
+
+            {/* Frog Sticker Choice Selector */}
+            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', justifyContent: 'center' }}>
               <button
                 className="btn"
                 onClick={() => setStickerChoice('current')}
                 style={{
-                  fontSize: '0.85rem',
-                  padding: '0.3rem 0.8rem',
+                  fontSize: '0.8rem',
+                  padding: '0.25rem 0.65rem',
                   backgroundColor: stickerChoice === 'current' ? 'var(--window-title-bg)' : 'var(--button-bg)',
                   color: stickerChoice === 'current' ? 'var(--window-title-text)' : 'var(--text-primary)'
                 }}
@@ -767,8 +1045,8 @@ export default function Photos() {
                 className="btn"
                 onClick={() => setStickerChoice('partyhat')}
                 style={{
-                  fontSize: '0.85rem',
-                  padding: '0.3rem 0.8rem',
+                  fontSize: '0.8rem',
+                  padding: '0.25rem 0.65rem',
                   backgroundColor: stickerChoice === 'partyhat' ? 'var(--window-title-bg)' : 'var(--button-bg)',
                   color: stickerChoice === 'partyhat' ? 'var(--window-title-text)' : 'var(--text-primary)'
                 }}
@@ -779,8 +1057,8 @@ export default function Photos() {
                 className="btn"
                 onClick={() => setStickerChoice('necklace')}
                 style={{
-                  fontSize: '0.85rem',
-                  padding: '0.3rem 0.8rem',
+                  fontSize: '0.8rem',
+                  padding: '0.25rem 0.65rem',
                   backgroundColor: stickerChoice === 'necklace' ? 'var(--window-title-bg)' : 'var(--button-bg)',
                   color: stickerChoice === 'necklace' ? 'var(--window-title-text)' : 'var(--text-primary)'
                 }}
@@ -791,8 +1069,8 @@ export default function Photos() {
                 className="btn"
                 onClick={() => setStickerChoice('basic')}
                 style={{
-                  fontSize: '0.85rem',
-                  padding: '0.3rem 0.8rem',
+                  fontSize: '0.8rem',
+                  padding: '0.25rem 0.65rem',
                   backgroundColor: stickerChoice === 'basic' ? 'var(--window-title-bg)' : 'var(--button-bg)',
                   color: stickerChoice === 'basic' ? 'var(--window-title-text)' : 'var(--text-primary)'
                 }}
@@ -872,7 +1150,7 @@ export default function Photos() {
               <img 
                 src="/assets/pixel_switch_camera.png" 
                 alt="Switch Front / Back Camera" 
-                style={{ width: '26px', height: '26px', imageRendering: 'pixelated', objectFit: 'contain', display: 'block', margin: 'auto' }} 
+                style={{ width: '28px', height: '28px', objectFit: 'contain', display: 'block', margin: 'auto' }} 
               />
             </button>
 
@@ -899,6 +1177,73 @@ export default function Photos() {
             Drag {gameState.petName} to position your sticker, pick a style, and snap your photo!
           </p>
 
+          {/* Toast Notification Banner */}
+          {showSaveToast && (
+            <div style={{
+              position: 'fixed',
+              bottom: '25px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              backgroundColor: '#2e7d32',
+              color: 'white',
+              padding: '0.65rem 1.4rem',
+              borderRadius: '25px',
+              fontWeight: 'bold',
+              fontSize: '0.9rem',
+              boxShadow: '0 6px 16px rgba(0,0,0,0.3)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}>
+              <span>Photo Saved to Album & Downloaded!</span>
+            </div>
+          )}
+
+          {/* Photobooth Album Strip (Always shows your saved photos directly under the camera) */}
+          {photos.length > 0 && (
+            <div style={{ marginTop: '1.25rem', width: '100%', maxWidth: '500px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                  Photobooth Album ({photos.length} {photos.length === 1 ? 'photo' : 'photos'})
+                </strong>
+                <button 
+                  className="btn" 
+                  onClick={() => setView('album')}
+                  style={{ fontSize: '0.75rem', padding: '0.25rem 0.65rem', fontWeight: 'bold' }}
+                >
+                  Open Full Album ➔
+                </button>
+              </div>
+              <div style={{ display: 'flex', gap: '0.6rem', overflowX: 'auto', padding: '0.25rem 0.25rem 0.5rem 0.25rem' }}>
+                {photos.map((p, idx) => (
+                  <div 
+                    key={p.id || idx}
+                    onClick={() => {
+                      setView('album');
+                      setSelectedIndex(idx);
+                    }}
+                    title="Click to view photo in album"
+                    style={{
+                      width: '80px',
+                      height: '60px',
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      flexShrink: 0,
+                      border: '2px solid var(--window-border-dark)',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                      backgroundColor: '#000',
+                      position: 'relative'
+                    }}
+                  >
+                    <img src={p.bg} alt={`Album photo ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Instant Photo Capture Preview Notification Card */}
           {capturedPreview && (
             <div style={{
@@ -912,7 +1257,7 @@ export default function Photos() {
               padding: '0.6rem 0.85rem',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
+              justify: 'space-between',
               gap: '0.75rem',
               boxSizing: 'border-box'
             }}>

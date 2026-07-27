@@ -192,17 +192,65 @@ export const getMoodHistory = async (userId) => {
   return moods.sort((a, b) => new Date(a.date) - new Date(b.date));
 };
 
+const compressDataUrlForStorage = (dataUrl, maxDimension = 800, quality = 0.75) => {
+  return new Promise((resolve) => {
+    if (!dataUrl || !dataUrl.startsWith('data:image')) return resolve(dataUrl);
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width;
+      let h = img.height;
+      if (w > maxDimension || h > maxDimension) {
+        if (w > h) {
+          h = Math.round((h * maxDimension) / w);
+          w = maxDimension;
+        } else {
+          w = Math.round((w * maxDimension) / h);
+          h = maxDimension;
+        }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+};
+
 export const savePhoto = async (userId, photoEntry) => {
-  const entry = { ...photoEntry, date: new Date().toISOString(), userId };
-  
+  const entry = { ...photoEntry, date: photoEntry.date || new Date().toISOString(), userId };
+  if (!entry.id) entry.id = Date.now().toString();
+
+  // Compress heavy base64 image data URL before saving to localStorage to prevent QuotaExceededError
+  let storageBg = entry.bg;
+  if (storageBg && storageBg.length > 200000) {
+    try {
+      storageBg = await compressDataUrlForStorage(entry.bg, 800, 0.75);
+    } catch (e) {
+      console.warn("Compression fallback:", e);
+    }
+  }
+
+  const localEntry = { ...entry, bg: storageBg };
+
   // Always save to localStorage immediately for instant UI update & offline reliability
   try {
-    entry.id = Date.now().toString();
     const existing = JSON.parse(localStorage.getItem(`frog_photos_${userId}`) || '[]');
-    existing.unshift(entry);
-    localStorage.setItem(`frog_photos_${userId}`, JSON.stringify(existing));
+    const filtered = existing.filter(p => p.id !== entry.id);
+    filtered.unshift(localEntry);
+    localStorage.setItem(`frog_photos_${userId}`, JSON.stringify(filtered));
   } catch (err) {
-    console.error("LocalStorage save error:", err);
+    console.warn("LocalStorage save warning, pruning older photos to free space...", err);
+    try {
+      const existing = JSON.parse(localStorage.getItem(`frog_photos_${userId}`) || '[]');
+      const pruned = [localEntry, ...existing.filter(p => p.id !== entry.id)].slice(0, 8);
+      localStorage.setItem(`frog_photos_${userId}`, JSON.stringify(pruned));
+    } catch (e) {
+      console.error("Failed to store in localStorage:", e);
+    }
   }
 
   if (!isConfigured) {

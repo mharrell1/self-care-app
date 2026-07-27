@@ -2,51 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
 import { getJournalEntries, getMoodHistory } from '../services/db';
-
-const FROG_AFFIRMATIONS = [
-  "Even on rainy days, a frog knows how to leap with joy!",
-  "Take it one lilypad hop at a time—you are making progress!",
-  "It is totally un-frog-gettable how amazing and strong you are!",
-  "Rest on your lilypad today. You don't always have to be leaping!",
-  "Your kindness is toad-ally magical and brightens the whole pond!",
-  "You are ribbit-ing with potential and capable of great things!",
-  "Drink your water, breathe deeply, and enjoy calm pond waters.",
-  "Small hops every day add up to giant leaps over time!",
-  "Bask in the warm sun and be proud of how far you've come.",
-  "You are deserving of love, peace, and plenty of cozy pond moments.",
-  "Never let anyone dull your shine—you are a masterpiece in this pond!",
-  "Keep your head above water and remember you've got this!",
-  "A quiet pond brings clarity. Give yourself time to relax.",
-  "You are toad-ally awesome, just by being yourself!",
-  "Hop into today with confidence and a gentle smile.",
-  "Surround yourself with cozy waters and uplifting thoughts.",
-  "Every lilypad is a new opportunity to rest and recharge.",
-  "You bring balance and harmony to your little corner of the world.",
-  "No matter how murky the water gets, your inner light shines bright.",
-  "Be patient with your growth—tadpoles take time to blossom into frogs!",
-  "Your heart is full of wonder, strength, and endless warmth.",
-  "Enjoy the sweet sound of rain and let your worries wash away.",
-  "You are strong enough to splash through any obstacle today.",
-  "Take a deep breath and listen to the soothing rhythm of nature.",
-  "Your resilience is un-frog-gettable. Keep hopping forward!",
-  "Pond life is sweet when you take time to care for your heart.",
-  "Celebrate your progress today—every hop counts!",
-  "You are a precious part of this pond. Never forget your worth.",
-  "Embrace your unique splash—the world needs your light!",
-  "Croak your truth with confidence and live authentically!"
-];
-
-function getFrogAffirmationForDate(year, month, dayNum) {
-  const monthStr = String(month + 1).padStart(2, '0');
-  const dayStr = String(dayNum).padStart(2, '0');
-  const dateStr = `${year}-${monthStr}-${dayStr}`;
-  let hash = 0;
-  for (let i = 0; i < dateStr.length; i++) {
-    hash = dateStr.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const index = Math.abs(hash) % FROG_AFFIRMATIONS.length;
-  return FROG_AFFIRMATIONS[index];
-}
+import { getFrogAffirmationForDate, getDailyFrogAffirmation } from '../utils/affirmations';
 
 export default function Stats() {
   const navigate = useNavigate();
@@ -135,16 +91,23 @@ export default function Stats() {
     return `${calendarYear}-${monthStr}-${dayStr}`;
   };
 
-  const handleDayClick = (dayNum) => {
-    const dateISO = getISODateForDay(dayNum);
-    const dateObj = new Date(calendarYear, calendarMonth, dayNum);
+  const handleDayClick = (dayNum, targetYear = calendarYear, targetMonth = calendarMonth) => {
+    const monthStr = String(targetMonth + 1).padStart(2, '0');
+    const dayStr = String(dayNum).padStart(2, '0');
+    const dateISO = `${targetYear}-${monthStr}-${dayStr}`;
+    const dateObj = new Date(targetYear, targetMonth, dayNum);
     const dateDisplay = dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+
+    if (targetYear !== calendarYear || targetMonth !== calendarMonth) {
+      setCalendarYear(targetYear);
+      setCalendarMonth(targetMonth);
+    }
 
     // Find journal entries for this date
     const dayJournals = journalEntries.filter(entry => {
       if (!entry.date) return false;
       const d = new Date(entry.date);
-      return d.getFullYear() === calendarYear && d.getMonth() === calendarMonth && d.getDate() === dayNum;
+      return d.getFullYear() === targetYear && d.getMonth() === targetMonth && d.getDate() === dayNum;
     });
 
     // Find mood for this date (check gameState.dailyMoodLogs first, then moodHistory)
@@ -153,23 +116,65 @@ export default function Stats() {
       const foundMood = moodHistory.slice().reverse().find(m => {
         if (!m.date) return false;
         const d = new Date(m.date);
-        return d.getFullYear() === calendarYear && d.getMonth() === calendarMonth && d.getDate() === dayNum;
+        return d.getFullYear() === targetYear && d.getMonth() === targetMonth && d.getDate() === dayNum;
       });
       if (foundMood) dayMood = foundMood.mood;
     }
 
-    // Every day gets its own unique affirmation based on the date
-    const affirmation = getFrogAffirmationForDate(calendarYear, calendarMonth, dayNum);
+    // Find frog's adventures for this date
+    const allAdventures = Array.isArray(gameState?.dailyAdventures) ? gameState.dailyAdventures : [];
+    const dayAdventures = allAdventures.filter(adv => {
+      if (adv.dateISO) return adv.dateISO === dateISO;
+      if (adv.timestamp) {
+        const d = new Date(adv.timestamp);
+        const advISO = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        return advISO === dateISO;
+      }
+      return false;
+    });
+
+    // Include pending/last adventure if dateISO matches and not already in array
+    const checkAndAddAdv = (adv) => {
+      if (!adv) return;
+      const advISO = adv.dateISO || (adv.timestamp ? `${new Date(adv.timestamp).getFullYear()}-${String(new Date(adv.timestamp).getMonth() + 1).padStart(2, '0')}-${String(new Date(adv.timestamp).getDate()).padStart(2, '0')}` : null);
+      if (advISO === dateISO && !dayAdventures.some(a => a.timestamp === adv.timestamp || (a.location === adv.location && a.story === adv.story))) {
+        dayAdventures.push(adv);
+      }
+    };
+    checkAndAddAdv(gameState?.pendingAdventure);
+    checkAndAddAdv(gameState?.lastAdventure);
+
+    // Every day gets its own unique affirmation based on the date (today uses cached daily affirmation)
+    const todayObj = new Date();
+    const isToday = (targetYear === todayObj.getFullYear() && targetMonth === todayObj.getMonth() && dayNum === todayObj.getDate());
+    const affirmation = isToday ? getDailyFrogAffirmation() : getFrogAffirmationForDate(targetYear, targetMonth, dayNum);
 
     setSelectedDayLog({
       dayNum,
+      year: targetYear,
+      month: targetMonth,
       dateISO,
       dateDisplay,
-      isActive: activeDays.includes(dateISO) || dayJournals.length > 0 || !!dayMood,
-      mood: dayMood || (activeDays.includes(dateISO) ? 'Happy' : 'No mood recorded'),
+      isActive: activeDays.includes(dateISO) || dayJournals.length > 0 || !!dayMood || dayAdventures.length > 0,
+      mood: dayMood || 'No mood recorded',
       journals: dayJournals,
+      adventures: dayAdventures,
       affirmation
     });
+  };
+
+  const handlePrevDay = () => {
+    if (!selectedDayLog) return;
+    const curDate = new Date(selectedDayLog.year ?? calendarYear, selectedDayLog.month ?? calendarMonth, selectedDayLog.dayNum);
+    curDate.setDate(curDate.getDate() - 1);
+    handleDayClick(curDate.getDate(), curDate.getFullYear(), curDate.getMonth());
+  };
+
+  const handleNextDay = () => {
+    if (!selectedDayLog) return;
+    const curDate = new Date(selectedDayLog.year ?? calendarYear, selectedDayLog.month ?? calendarMonth, selectedDayLog.dayNum);
+    curDate.setDate(curDate.getDate() + 1);
+    handleDayClick(curDate.getDate(), curDate.getFullYear(), curDate.getMonth());
   };
 
   const handleDrinkWater = () => {
@@ -589,7 +594,23 @@ export default function Stats() {
               justify: 'space-between',
               alignItems: 'center'
             }}>
-              <span>Day Activity Log ({selectedDayLog.dateDisplay})</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <button
+                  onClick={handlePrevDay}
+                  title="Previous Day"
+                  style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1rem', lineHeight: 1, padding: '0 2px' }}
+                >
+                  ‹
+                </button>
+                <span>Activity Log ({selectedDayLog.dateDisplay})</span>
+                <button
+                  onClick={handleNextDay}
+                  title="Next Day"
+                  style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1rem', lineHeight: 1, padding: '0 2px' }}
+                >
+                  ›
+                </button>
+              </div>
               <button 
                 onClick={() => setSelectedDayLog(null)}
                 style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontWeight: 'bold' }}
@@ -622,6 +643,32 @@ export default function Stats() {
                   </p>
                 </div>
               )}
+
+              {/* Frog's Adventures Today */}
+              <div style={{ marginBottom: '0.75rem', borderTop: '1px dashed var(--window-border)', paddingTop: '0.5rem' }}>
+                <strong>Frog's Adventures Today: </strong>
+                {selectedDayLog.adventures && selectedDayLog.adventures.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.35rem' }}>
+                    {selectedDayLog.adventures.map((adv, i) => (
+                      <div key={adv.id || i} style={{ backgroundColor: 'var(--primary-light)', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--window-border)', fontSize: '0.8rem' }}>
+                        <div style={{ fontWeight: 'bold', color: 'var(--primary-color)' }}>
+                          📍 {adv.location}
+                        </div>
+                        <div style={{ margin: '0.2rem 0', color: 'var(--text-primary)' }}>
+                          {gameState?.petName || 'Froggy'} {adv.story}
+                        </div>
+                        {adv.lesson && (
+                          <div style={{ fontStyle: 'italic', color: '#555', fontSize: '0.75rem' }}>
+                            "{adv.lesson}"
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p style={{ color: '#777', marginTop: '0.2rem', fontStyle: 'italic' }}>No adventures taken on this day yet.</p>
+                )}
+              </div>
 
               <div style={{ marginBottom: '0.75rem', borderTop: '1px dashed var(--window-border)', paddingTop: '0.5rem' }}>
                 <strong>Journal Entries: </strong>
@@ -657,9 +704,26 @@ export default function Stats() {
                 )}
               </div>
 
-              <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-                <button className="btn" onClick={() => setSelectedDayLog(null)} style={{ padding: '0.3rem 1.25rem', fontWeight: 'bold' }}>
+              {/* Day Navigation Action Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--window-border)' }}>
+                <button 
+                  className="btn" 
+                  onClick={handlePrevDay} 
+                  title="View previous day's activities"
+                  style={{ padding: '0.3rem 0.65rem', fontSize: '0.8rem', fontWeight: 'bold' }}
+                >
+                  ◀ Prev Day
+                </button>
+                <button className="btn" onClick={() => setSelectedDayLog(null)} style={{ padding: '0.3rem 1rem', fontWeight: 'bold' }}>
                   Close
+                </button>
+                <button 
+                  className="btn" 
+                  onClick={handleNextDay} 
+                  title="View next day's activities"
+                  style={{ padding: '0.3rem 0.65rem', fontSize: '0.8rem', fontWeight: 'bold' }}
+                >
+                  Next Day ▶
                 </button>
               </div>
             </div>

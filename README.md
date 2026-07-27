@@ -22,28 +22,30 @@ Earn coins and keep your frog happy by completing daily self-care tasks, trackin
   - **Vacation & Campsite Adventure Views**: View your equipped frog avatar in vacation mode or centered inside an outdoor campsite background frame during adventure logs.
 
 - **Activity & Stats Center**:
-  - **Monthly Active Calendar**: Navigate through all 12 months to see your activity history. The calendar marks every day you check in with a transparent pixel frog emoji marker (`pixel_frog_marker.png`).
-  - **Interactive Day Activity Log**: Click any day on the calendar to view that day's uniquely assigned Froggy Affirmation, past journal entries, recorded moods, and self-care check-ins.
+  - **Monthly Active Calendar**: Navigate through all 12 months to see your activity history. The calendar marks every day you check in with a transparent pixel frog marker (`pixel_frog_marker.png`).
+  - **Frog's Daily Adventures in Calendar**: Click any date in the calendar to view your frog's logged adventures for that date (location, story, and froggy lesson!).
+  - **Accurate Mood Reflection**: Unlogged dates explicitly show `"No mood recorded"` (no default fallback). Logging a mood in Self Care instantly syncs across calendar views.
+  - **Prev Day & Next Day Modal Navigation**: Scroll sequentially through past and future activity logs inside the day detail modal with one-click `Prev Day` and `Next Day` navigation controls.
+  - **Unified Daily Affirmations**: Consistent date-hashed froggy affirmations shared across app launch modals and Stats calendar views.
   - **Daily Check-In Streaks & Rewards**: Maintains consecutive check-in streaks and rewards users with bonus coins and Friendship XP.
   - **Pet Friendship Leveling System**: Level up your friendship status with your pet (Level 1: *New Friends* ➔ Level 2: *Good Pals* ➔ Level 3: *Best Friends* ➔ Level 4: *Soulmates* ➔ Level 5+: *Inseparable Partners*).
-  - **Mood & Self-Care Analytics**: Toggle between Calendar View and Habit Correlation Insights showing how hydration, soundscapes, and journaling correlate with positive mood days for the selected month.
-
-- **Self Care Suite**: 
-  - **Pond Sound Machine**: A retro pixel music player featuring a Web Audio API ambient sound synthesizer engine with **Gentle Rain**, **Pond & Frogs** (soft water ripples with relaxing periodic frog croaks), and **Lofi Beats** (warm pentatonic synth chords).
-  - **Daily Self-Care Checklist**: Custom daily checklist with default tasks (*Drink water*, *Make bed*, *Step outside*, *Stretch*) and custom task creation. Completing tasks rewards **+10 Coins** and **+10 Happiness** per task, with automatic daily resets.
-  - **Mood Tracker**: Log your daily emotions using cute frog mood badges. Save your mood directly to a new journal entry with one click!
-  - **Breathing Exercise**: Follow visual cues for a calming breathing cycle to center yourself. Space-optimized retro layout.
-  - **Meditation Timer**: Set a timer and practice mindfulness to earn coins and happiness points.
-
-- **Secret Journal**: A safe space to write down your daily thoughts and reflections. 
-  - **Guided Reflection Prompts**: Choose from 5 guided prompts to kickstart your writing.
-  - **Journal Entry Rewards**: Earn **+15 Coins** and **+10 Happiness** for saving reflection entries.
-  - **Mood & Photo Imports**: Import your last saved mood or a photobooth picture directly into your entry.
 
 - **Photobooth & Album**:
-  - **Live Camera & Upload**: Take photos with your custom frog companion using your webcam or photo uploads.
-  - **Draggable Frog & Outfits**: Position frog stickers with custom outfit selection (*Party Hat*, *Necklace*, *Basic Frog*).
-  - **Pixel Control Bar**: Retro controls for camera feed, flash, front/rear camera toggle, and full-size photo album modal.
+  - **Live Camera & Dynamic Upload Sizing**: Take photos with your custom frog companion using your webcam or photo uploads with zero image cropping or cutoff.
+  - **Portrait & Landscape Modes**: Framed camera orientation buttons for Macbook webcams.
+  - **Interactive Placement Bounding Box**: Drag and enlarge frog stickers using a transparent dashed bounding box with corner resize handles (`↖`, `↗`, `↙`, `↘`).
+  - **One-Click Save & Download**: Pressing `Save Photo` synchronously downloads the high-res PNG file to your computer's Downloads folder while instantly saving the photo into your Photobooth Album.
+
+- **Self Care Suite**: 
+  - **Pond Sound Machine**: A retro pixel music player featuring a Web Audio API ambient sound synthesizer engine with **Gentle Rain**, **Pond & Frogs**, and **Lofi Beats**.
+  - **Daily Self-Care Checklist**: Custom daily checklist with default tasks (*Drink water*, *Make bed*, *Step outside*, *Stretch*) and custom task creation. Completing tasks rewards **+10 Coins** and **+10 Happiness** per task, with automatic daily resets.
+  - **Mood Tracker**: Log your daily emotions using cute frog mood badges. Save your mood directly to a new journal entry with one click!
+  - **Breathing Exercise & Meditation Timer**: Center yourself with guided mindfulness cycles to earn coins and happiness points.
+
+- **Secret Journal**: A safe space to write down your daily thoughts and reflections. 
+  - **Guided Reflection Prompts**: Choose from guided prompts to kickstart your writing.
+  - **Journal Entry Rewards**: Earn **+15 Coins** and **+10 Happiness** for saving reflection entries.
+  - **Mood & Photo Imports**: Import your last saved mood or a photobooth picture directly into your entry.
 
 - **Mini-Games**: 
   - 🎣 **Fishing**: Timing-based mini-game to catch common, rare, and epic fish.
