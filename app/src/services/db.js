@@ -274,7 +274,7 @@ export const getMoodHistory = async (userId) => {
   return moods.sort((a, b) => new Date(a.date) - new Date(b.date));
 };
 
-const compressDataUrlForStorage = (dataUrl, maxDimension = 1200) => {
+const compressDataUrlForStorage = (dataUrl, maxDimension = 700, quality = 0.82) => {
   return new Promise((resolve) => {
     if (!dataUrl || !dataUrl.startsWith('data:image')) return resolve(dataUrl);
     const img = new Image();
@@ -289,15 +289,13 @@ const compressDataUrlForStorage = (dataUrl, maxDimension = 1200) => {
           w = Math.round((w * maxDimension) / h);
           h = maxDimension;
         }
-      } else {
-        return resolve(dataUrl);
       }
       const canvas = document.createElement('canvas');
       canvas.width = w;
       canvas.height = h;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL('image/png'));
+      resolve(canvas.toDataURL('image/jpeg', quality));
     };
     img.onerror = () => resolve(dataUrl);
     img.src = dataUrl;
@@ -311,9 +309,9 @@ export const savePhoto = async (userId, photoEntry) => {
 
   // Compress heavy base64 image data URL before saving to localStorage and Firestore to prevent quota & size errors
   let storageBg = entry.bg;
-  if (storageBg && storageBg.length > 150000) {
+  if (storageBg) {
     try {
-      storageBg = await compressDataUrlForStorage(entry.bg, 800, 0.75);
+      storageBg = await compressDataUrlForStorage(entry.bg, 700, 0.82);
     } catch (e) {
       console.warn("Compression fallback:", e);
     }
