@@ -1355,16 +1355,16 @@ async function triggerDirectDownload(dataUrl, photoId) {
                   title="Click to enlarge & view options!"
                   style={{ 
                     position: 'relative', 
-                    aspectRatio: '4/3',
-                    backgroundColor: '#eee',
+                    aspectRatio: photo.orientation === 'portrait' ? '3/4' : '4/3',
+                    backgroundColor: '#111',
                     borderRadius: '10px',
                     overflow: 'hidden',
-                    boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+                    boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
                     cursor: 'pointer',
-                    border: '2px solid transparent',
+                    border: '2px solid var(--window-border-dark)',
                     transition: 'transform 0.15s ease'
                   }}>
-                  <img src={photo.bg} alt="Background" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={photo.bg} alt="Background" style={{ width: '100%', height: '100%', objectFit: 'contain', backgroundColor: '#000' }} />
                   {/* Render Frog Sticker overlay for photos that store stickerPos */}
                   {photo.stickerPos && (
                     <div style={{ 
@@ -1386,7 +1386,10 @@ async function triggerDirectDownload(dataUrl, photoId) {
                       left: '10px',
                       color: 'white',
                       textShadow: '1px 1px 2px black',
-                      fontSize: '0.7rem'
+                      fontSize: '0.7rem',
+                      backgroundColor: 'rgba(0,0,0,0.4)',
+                      padding: '0.1rem 0.4rem',
+                      borderRadius: '4px'
                     }}
                   >
                     {new Date(photo.date).toLocaleDateString()}
@@ -1418,7 +1421,7 @@ async function triggerDirectDownload(dataUrl, photoId) {
             onClick={(e) => e.stopPropagation()}
             style={{
               width: '100%',
-              maxWidth: '560px',
+              maxWidth: selectedPhoto.orientation === 'portrait' ? '420px' : '580px',
               backgroundColor: 'var(--window-bg)',
               borderRadius: '12px',
               overflow: 'hidden',
@@ -1445,12 +1448,14 @@ async function triggerDirectDownload(dataUrl, photoId) {
               style={{ 
                 position: 'relative', 
                 width: '100%', 
-                aspectRatio: '4/3', 
+                maxHeight: '65vh',
+                aspectRatio: selectedPhoto.orientation === 'portrait' ? '3/4' : '4/3', 
                 backgroundColor: '#000',
                 display: 'flex',
                 alignItems: 'center',
                 justify: 'center',
-                overflow: 'hidden'
+                overflow: 'hidden',
+                margin: '0 auto'
               }}
             >
               {/* Previous Photo Button (Square Retro Left Arrow) */}
@@ -1514,7 +1519,7 @@ async function triggerDirectDownload(dataUrl, photoId) {
               <img 
                 src={selectedPhoto.bg} 
                 alt="Full Size Photo" 
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                style={{ width: '100%', height: '100%', objectFit: 'contain', backgroundColor: '#000' }} 
               />
               {/* Render Frog Sticker overlay for photos that store stickerPos */}
               {selectedPhoto.stickerPos && (
