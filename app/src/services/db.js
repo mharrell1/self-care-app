@@ -354,56 +354,71 @@ export const savePhoto = async (userId, photoEntry) => {
 
 export const getPhotos = async (userId) => {
   const effectiveUserId = userId || 'default_user';
-  const localKeys = [`frog_photos_${effectiveUserId}`, 'frog_photos_default_user', 'frog_photos_demo_user', 'frog_photos_null'];
+  
+  // Read from all local storage keys
   let localPhotos = [];
-  localKeys.forEach(k => {
-    try {
-      const parsed = JSON.parse(localStorage.getItem(k) || '[]');
-      localPhotos = [...localPhotos, ...parsed];
-    } catch (e) {}
-  });
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('frog_photos_')) {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(key) || '[]');
+          if (Array.isArray(parsed)) {
+            localPhotos = [...localPhotos, ...parsed];
+          }
+        } catch (e) {}
+      }
+    }
+  } catch (e) {}
 
   if (!isConfigured) {
     await delay(100);
     const photoMap = new Map();
     localPhotos.forEach(p => {
+      if (!p) return;
       const key = p.id || p.date || p.bg;
-      if (!photoMap.has(key)) {
+      if (key && !photoMap.has(key)) {
         photoMap.set(key, p);
       }
     });
-    return Array.from(photoMap.values()).sort((a, b) => new Date(b.date) - new Date(a.date));
+    return Array.from(photoMap.values()).sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
   }
 
+  let remotePhotos = [];
   try {
     const q = query(collection(db, "photos"), where("userId", "in", [effectiveUserId, "default_user", "demo_user"]));
     const querySnapshot = await getDocs(q);
-    const remotePhotos = [];
     querySnapshot.forEach((doc) => {
       remotePhotos.push({ id: doc.id, ...doc.data() });
     });
-    
-    // Deduplicate combined photos using date timestamp, id, or image content key
-    const photoMap = new Map();
-    [...remotePhotos, ...localPhotos].forEach(p => {
-      const key = p.id || p.date || p.bg;
-      if (!photoMap.has(key)) {
-        photoMap.set(key, p);
-      }
-    });
-    const combined = Array.from(photoMap.values());
-    return combined.sort((a, b) => new Date(b.date) - new Date(a.date));
   } catch (err) {
-    console.error("Error fetching photos from Firestore, using local storage:", err);
-    const photoMap = new Map();
-    localPhotos.forEach(p => {
-      const key = p.id || p.date || p.bg;
-      if (!photoMap.has(key)) {
-        photoMap.set(key, p);
-      }
-    });
-    return Array.from(photoMap.values()).sort((a, b) => new Date(b.date) - new Date(a.date));
+    console.warn("Filtered query failed, fetching all photos from Firestore collection...", err);
   }
+
+  // If remotePhotos is empty, fetch ALL documents in 'photos' collection as fallback!
+  if (remotePhotos.length === 0) {
+    try {
+      const querySnapshot = await getDocs(collection(db, "photos"));
+      querySnapshot.forEach((doc) => {
+        remotePhotos.push({ id: doc.id, ...doc.data() });
+      });
+    } catch (e) {
+      console.error("Firestore photos fetch error:", e);
+    }
+  }
+
+  // Deduplicate combined remote + local photos
+  const photoMap = new Map();
+  [...remotePhotos, ...localPhotos].forEach(p => {
+    if (!p) return;
+    const key = p.id || p.date || p.bg;
+    if (key && !photoMap.has(key)) {
+      photoMap.set(key, p);
+    }
+  });
+
+  const combined = Array.from(photoMap.values());
+  return combined.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 };
 
 export const deletePhoto = async (userId, photoId, photoObj) => {
