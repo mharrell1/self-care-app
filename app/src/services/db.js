@@ -373,7 +373,7 @@ export const getPhotos = async (userId) => {
     await delay(100);
     const photoMap = new Map();
     localPhotos.forEach(p => {
-      if (!p) return;
+      if (!p || !p.bg) return;
       const key = p.id || p.date || p.bg;
       if (key && !photoMap.has(key)) {
         photoMap.set(key, p);
@@ -405,10 +405,27 @@ export const getPhotos = async (userId) => {
     }
   }
 
+  // Auto-sync unsynced local photos up to Firestore Cloud DB so they appear everywhere!
+  const remoteIds = new Set(remotePhotos.map(r => r.id || r.date));
+  localPhotos.forEach(async (lp) => {
+    if (lp && lp.bg && !remoteIds.has(lp.id || lp.date)) {
+      try {
+        let compressedBg = lp.bg;
+        if (compressedBg.length > 100000) {
+          compressedBg = await compressDataUrlForStorage(lp.bg, 700, 0.82);
+        }
+        const syncEntry = { ...lp, bg: compressedBg, userId: effectiveUserId };
+        await addDoc(collection(db, "photos"), syncEntry);
+      } catch (syncErr) {
+        console.warn("Auto sync local photo failed:", syncErr);
+      }
+    }
+  });
+
   // Deduplicate combined remote + local photos
   const photoMap = new Map();
   [...remotePhotos, ...localPhotos].forEach(p => {
-    if (!p) return;
+    if (!p || !p.bg) return;
     const key = p.id || p.date || p.bg;
     if (key && !photoMap.has(key)) {
       photoMap.set(key, p);
