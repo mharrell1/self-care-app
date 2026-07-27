@@ -43,16 +43,31 @@ const ADVENTURES = [
 
 const GameContext = createContext();
 
+const getStoredGuestUserId = () => {
+  try {
+    let guestId = localStorage.getItem('frog_user_id');
+    if (!guestId) {
+      guestId = 'default_user';
+      localStorage.setItem('frog_user_id', guestId);
+    }
+    return guestId;
+  } catch (e) {
+    return 'default_user';
+  }
+};
+
 export function GameProvider({ children }) {
   const [gameState, setGameState] = useState(null);
   const [error, setError] = useState(null);
-  const [userId, setUserId] = useState(firebaseConfig.apiKey === "YOUR_API_KEY" ? 'demo_user' : null); 
+  const [userId, setUserId] = useState(getStoredGuestUserId()); 
 
   useEffect(() => {
     if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
       const unsubscribe = onAuthStateChanged(auth, (user) => {
         if (user) {
           setUserId(user.uid);
+        } else {
+          setUserId(getStoredGuestUserId());
         }
       });
       return () => unsubscribe();

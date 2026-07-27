@@ -77,6 +77,7 @@ export const getGameState = async (userId) => {
 };
 
 export const saveJournalEntry = async (userId, entryContent, photoUrl = null) => {
+  const effectiveUserId = userId || 'default_user';
   let storagePhotoUrl = photoUrl;
   if (storagePhotoUrl && storagePhotoUrl.length > 150000) {
     try {
@@ -90,16 +91,16 @@ export const saveJournalEntry = async (userId, entryContent, photoUrl = null) =>
     id: Date.now().toString(),
     content: entryContent,
     date: new Date().toISOString(),
-    userId: userId,
+    userId: effectiveUserId,
     photoUrl: storagePhotoUrl
   };
 
   // Always save to localStorage immediately for instant offline & local availability
   try {
-    const existing = JSON.parse(localStorage.getItem(`frog_journal_${userId}`) || '[]');
+    const existing = JSON.parse(localStorage.getItem(`frog_journal_${effectiveUserId}`) || '[]');
     const filtered = existing.filter(e => e.id !== entry.id);
     filtered.unshift(entry);
-    localStorage.setItem(`frog_journal_${userId}`, JSON.stringify(filtered));
+    localStorage.setItem(`frog_journal_${effectiveUserId}`, JSON.stringify(filtered));
   } catch (err) {
     console.error("LocalStorage journal save error:", err);
   }
@@ -114,9 +115,9 @@ export const saveJournalEntry = async (userId, entryContent, photoUrl = null) =>
     entry.id = docRef.id;
     // Update local id reference if Cloud DB assignment succeeds
     try {
-      const existing = JSON.parse(localStorage.getItem(`frog_journal_${userId}`) || '[]');
+      const existing = JSON.parse(localStorage.getItem(`frog_journal_${effectiveUserId}`) || '[]');
       const updated = existing.map(e => e.id === entry.id || (e.date === entry.date && e.content === entry.content) ? { ...e, id: docRef.id } : e);
-      localStorage.setItem(`frog_journal_${userId}`, JSON.stringify(updated));
+      localStorage.setItem(`frog_journal_${effectiveUserId}`, JSON.stringify(updated));
     } catch (e) {}
   } catch (dbErr) {
     console.error("Firestore journal save error:", dbErr);
@@ -126,15 +127,30 @@ export const saveJournalEntry = async (userId, entryContent, photoUrl = null) =>
 };
 
 export const getJournalEntries = async (userId) => {
-  const localEntries = JSON.parse(localStorage.getItem(`frog_journal_${userId}`) || '[]');
+  const effectiveUserId = userId || 'default_user';
+  const localKeys = [`frog_journal_${effectiveUserId}`, 'frog_journal_default_user', 'frog_journal_demo_user', 'frog_journal_null'];
+  let localEntries = [];
+  localKeys.forEach(k => {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(k) || '[]');
+      localEntries = [...localEntries, ...parsed];
+    } catch (e) {}
+  });
 
   if (!isConfigured) {
     await delay(100);
-    return localEntries;
+    const map = new Map();
+    localEntries.forEach(item => {
+      const key = item.id || `${item.date}_${item.content?.substring(0, 10)}`;
+      if (!map.has(key) || (item.photoUrl && !map.get(key).photoUrl)) {
+        map.set(key, item);
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => new Date(b.date) - new Date(a.date));
   }
 
   try {
-    const q = query(collection(db, "journals"), where("userId", "==", userId));
+    const q = query(collection(db, "journals"), where("userId", "in", [effectiveUserId, "default_user", "demo_user"]));
     const querySnapshot = await getDocs(q);
     const remoteEntries = [];
     querySnapshot.forEach((doc) => {
@@ -152,7 +168,14 @@ export const getJournalEntries = async (userId) => {
     return Array.from(map.values()).sort((a, b) => new Date(b.date) - new Date(a.date));
   } catch (e) {
     console.error("Firestore getJournalEntries error:", e);
-    return localEntries;
+    const map = new Map();
+    localEntries.forEach(item => {
+      const key = item.id || `${item.date}_${item.content?.substring(0, 10)}`;
+      if (!map.has(key) || (item.photoUrl && !map.get(key).photoUrl)) {
+        map.set(key, item);
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => new Date(b.date) - new Date(a.date));
   }
 };
 
