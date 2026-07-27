@@ -583,7 +583,7 @@ async function triggerDirectDownload(dataUrl, photoId) {
     if (e) e.stopPropagation();
     
     const targetPhoto = photos.find(p => p.id === photoId) || selectedPhoto || capturedPreview;
-    if (!targetPhoto) return;
+    if (!targetPhoto || !targetPhoto.bg) return;
     
     // Ensure photo is saved to album state and persistent DB storage
     setPhotos(prev => prev.some(p => p.id === targetPhoto.id) ? prev : [targetPhoto, ...prev]);
@@ -596,13 +596,7 @@ async function triggerDirectDownload(dataUrl, photoId) {
     setIsDownloading(true);
 
     try {
-      const targetMode = targetPhoto.orientation || cameraOrientation;
-      const dataUrl = (targetPhoto.bg && targetPhoto.bg.startsWith('data:image/png'))
-        ? targetPhoto.bg 
-        : await createSingleCompositePhoto(targetPhoto.bg, targetPhoto.stickerPos, targetPhoto, targetPhoto.stickerSize || stickerSize, targetMode);
-
-      triggerDirectDownload(dataUrl, targetPhoto.id);
-
+      triggerDirectDownload(targetPhoto.bg, targetPhoto.id);
       setShowSaveToast(true);
       setTimeout(() => setShowSaveToast(false), 3000);
     } catch (err) {
@@ -1365,19 +1359,6 @@ async function triggerDirectDownload(dataUrl, photoId) {
                     transition: 'transform 0.15s ease'
                   }}>
                   <img src={photo.bg} alt="Background" style={{ width: '100%', height: '100%', objectFit: 'contain', backgroundColor: '#000' }} />
-                  {/* Render Frog Sticker overlay for photos that store stickerPos */}
-                  {photo.stickerPos && (
-                    <div style={{ 
-                      position: 'absolute', 
-                      top: `${photo.stickerPos.y}%`, 
-                      left: `${photo.stickerPos.x}%`,
-                      width: '28%',
-                      aspectRatio: '1/1',
-                      pointerEvents: 'none'
-                    }}>
-                      <FrogAvatar gameState={photo} />
-                    </div>
-                  )}
                   <div 
                     id={`date-${photo.id}`}
                     style={{
@@ -1521,19 +1502,6 @@ async function triggerDirectDownload(dataUrl, photoId) {
                 alt="Full Size Photo" 
                 style={{ width: '100%', height: '100%', objectFit: 'contain', backgroundColor: '#000' }} 
               />
-              {/* Render Frog Sticker overlay for photos that store stickerPos */}
-              {selectedPhoto.stickerPos && (
-                <div style={{ 
-                  position: 'absolute', 
-                  top: `${selectedPhoto.stickerPos.y}%`, 
-                  left: `${selectedPhoto.stickerPos.x}%`,
-                  width: '28%',
-                  aspectRatio: '1/1',
-                  pointerEvents: 'none'
-                }}>
-                  <FrogAvatar gameState={selectedPhoto} />
-                </div>
-              )}
             </div>
 
             {/* Modal Action Controls Bar (Matching Light Purple Theme) */}
