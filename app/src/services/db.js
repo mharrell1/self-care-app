@@ -287,12 +287,13 @@ const compressDataUrlForStorage = (dataUrl, maxDimension = 800, quality = 0.75) 
 };
 
 export const savePhoto = async (userId, photoEntry) => {
-  const entry = { ...photoEntry, date: photoEntry.date || new Date().toISOString(), userId };
+  const effectiveUserId = userId || 'default_user';
+  const entry = { ...photoEntry, date: photoEntry.date || new Date().toISOString(), userId: effectiveUserId };
   if (!entry.id) entry.id = Date.now().toString();
 
-  // Compress heavy base64 image data URL before saving to localStorage to prevent QuotaExceededError
+  // Compress heavy base64 image data URL before saving to localStorage and Firestore to prevent quota & size errors
   let storageBg = entry.bg;
-  if (storageBg && storageBg.length > 200000) {
+  if (storageBg && storageBg.length > 150000) {
     try {
       storageBg = await compressDataUrlForStorage(entry.bg, 800, 0.75);
     } catch (e) {
@@ -304,67 +305,70 @@ export const savePhoto = async (userId, photoEntry) => {
 
   // Always save to localStorage immediately for instant UI update & offline reliability
   try {
-    const existing = JSON.parse(localStorage.getItem(`frog_photos_${userId}`) || '[]');
+    const existing = JSON.parse(localStorage.getItem(`frog_photos_${effectiveUserId}`) || '[]');
     const filtered = existing.filter(p => p.id !== entry.id);
     filtered.unshift(localEntry);
-    localStorage.setItem(`frog_photos_${userId}`, JSON.stringify(filtered));
+    localStorage.setItem(`frog_photos_${effectiveUserId}`, JSON.stringify(filtered));
   } catch (err) {
     console.warn("LocalStorage save warning, pruning older photos to free space...", err);
     try {
-      const existing = JSON.parse(localStorage.getItem(`frog_photos_${userId}`) || '[]');
+      const existing = JSON.parse(localStorage.getItem(`frog_photos_${effectiveUserId}`) || '[]');
       const pruned = [localEntry, ...existing.filter(p => p.id !== entry.id)].slice(0, 8);
-      localStorage.setItem(`frog_photos_${userId}`, JSON.stringify(pruned));
+      localStorage.setItem(`frog_photos_${effectiveUserId}`, JSON.stringify(pruned));
     } catch (e) {
       console.error("Failed to store in localStorage:", e);
     }
   }
 
   if (!isConfigured) {
-    return entry;
+    return localEntry;
   }
 
   try {
-    const imageId = entry.id;
-    const storageRef = ref(storage, `photos/${userId}/${imageId}.jpg`);
-    await uploadString(storageRef, photoEntry.bg, 'data_url');
-    const downloadURL = await getDownloadURL(storageRef);
-    entry.bg = downloadURL;
-    
-    const docRef = await addDoc(collection(db, "photos"), entry);
-    entry.id = docRef.id;
+    const docRef = await addDoc(collection(db, "photos"), localEntry);
+    localEntry.id = docRef.id;
   } catch (error) {
-    console.warn("Storage upload fallback: saving photo directly to Firestore Cloud DB...", error);
-    try {
-      const docRef = await addDoc(collection(db, "photos"), entry);
-      entry.id = docRef.id;
-    } catch (fsErr) {
-      console.error("Firestore photo save error:", fsErr);
-    }
+    console.error("Firestore photo save error:", error);
   }
 
-  return entry;
+  return localEntry;
 };
 
 export const getPhotos = async (userId) => {
-  const localPhotos = JSON.parse(localStorage.getItem(`frog_photos_${userId}`) || '[]');
+  const effectiveUserId = userId || 'default_user';
+  const localKeys = [`frog_photos_${effectiveUserId}`, 'frog_photos_default_user', 'frog_photos_demo_user', 'frog_photos_null'];
+  let localPhotos = [];
+  localKeys.forEach(k => {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(k) || '[]');
+      localPhotos = [...localPhotos, ...parsed];
+    } catch (e) {}
+  });
 
   if (!isConfigured) {
     await delay(100);
-    return localPhotos;
+    const photoMap = new Map();
+    localPhotos.forEach(p => {
+      const key = p.id || p.date || p.bg;
+      if (!photoMap.has(key)) {
+        photoMap.set(key, p);
+      }
+    });
+    return Array.from(photoMap.values()).sort((a, b) => new Date(b.date) - new Date(a.date));
   }
 
   try {
-    const q = query(collection(db, "photos"), where("userId", "==", userId));
+    const q = query(collection(db, "photos"), where("userId", "in", [effectiveUserId, "default_user", "demo_user"]));
     const querySnapshot = await getDocs(q);
     const remotePhotos = [];
     querySnapshot.forEach((doc) => {
       remotePhotos.push({ id: doc.id, ...doc.data() });
     });
     
-    // Deduplicate combined photos using date timestamp or image content key
+    // Deduplicate combined photos using date timestamp, id, or image content key
     const photoMap = new Map();
     [...remotePhotos, ...localPhotos].forEach(p => {
-      const key = p.date || p.id || p.bg;
+      const key = p.id || p.date || p.bg;
       if (!photoMap.has(key)) {
         photoMap.set(key, p);
       }
@@ -373,27 +377,36 @@ export const getPhotos = async (userId) => {
     return combined.sort((a, b) => new Date(b.date) - new Date(a.date));
   } catch (err) {
     console.error("Error fetching photos from Firestore, using local storage:", err);
-    return localPhotos;
+    const photoMap = new Map();
+    localPhotos.forEach(p => {
+      const key = p.id || p.date || p.bg;
+      if (!photoMap.has(key)) {
+        photoMap.set(key, p);
+      }
+    });
+    return Array.from(photoMap.values()).sort((a, b) => new Date(b.date) - new Date(a.date));
   }
 };
 
 export const deletePhoto = async (userId, photoId, photoObj) => {
+  const effectiveUserId = userId || 'default_user';
   const targetDate = photoObj?.date;
   const targetBg = photoObj?.bg;
 
   // 1. Remove from LocalStorage
-  try {
-    const existing = JSON.parse(localStorage.getItem(`frog_photos_${userId}`) || '[]');
-    const filtered = existing.filter(p => {
-      if (p.id === photoId) return false;
-      if (targetDate && p.date === targetDate) return false;
-      if (targetBg && p.bg === targetBg) return false;
-      return true;
-    });
-    localStorage.setItem(`frog_photos_${userId}`, JSON.stringify(filtered));
-  } catch (err) {
-    console.error("Error deleting local photo:", err);
-  }
+  const localKeys = [`frog_photos_${effectiveUserId}`, 'frog_photos_default_user', 'frog_photos_demo_user', 'frog_photos_null'];
+  localKeys.forEach(k => {
+    try {
+      const existing = JSON.parse(localStorage.getItem(k) || '[]');
+      const filtered = existing.filter(p => {
+        if (p.id === photoId) return false;
+        if (targetDate && p.date === targetDate) return false;
+        if (targetBg && p.bg === targetBg) return false;
+        return true;
+      });
+      localStorage.setItem(k, JSON.stringify(filtered));
+    } catch (err) {}
+  });
 
   // 2. Remove ALL matching documents from Firestore Cloud DB
   if (isConfigured) {
@@ -404,7 +417,7 @@ export const deletePhoto = async (userId, photoId, photoObj) => {
         } catch (e) {}
       }
 
-      const q = query(collection(db, "photos"), where("userId", "==", userId));
+      const q = query(collection(db, "photos"), where("userId", "in", [effectiveUserId, "default_user", "demo_user"]));
       const querySnapshot = await getDocs(q);
       const deletePromises = [];
       querySnapshot.forEach((documentSnap) => {
