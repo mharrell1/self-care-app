@@ -1298,20 +1298,6 @@ async function triggerDirectDownload(dataUrl, photoId) {
                   backgroundColor: '#000'
                 }}>
                   <img src={capturedPreview.bg} alt="Captured Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  {/* Only render legacy overlay if image is not a pre-merged PNG composite */}
-                  {capturedPreview.stickerPos && capturedPreview.bg && !capturedPreview.bg.startsWith('data:image/png') && (
-                    <div style={{
-                      position: 'absolute',
-                      top: `${capturedPreview.stickerPos.y}%`,
-                      left: `${capturedPreview.stickerPos.x}%`,
-                      width: '140px',
-                      height: '140px',
-                      transform: 'scale(0.24)',
-                      transformOrigin: 'top left'
-                    }}>
-                      <FrogAvatar gameState={capturedPreview} />
-                    </div>
-                  )}
                 </div>
                 <div>
                   <div style={{ fontWeight: 'bold', fontSize: '0.92rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
