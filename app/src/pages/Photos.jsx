@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useGame } from '../context/GameContext';
 import FrogAvatar from '../components/FrogAvatar';
+import { getFrogBaseImage } from '../utils/frogAssets';
 const AlbumPhotoCard = ({ photo, onClick }) => {
   const [aspect, setAspect] = useState(photo.orientation === 'portrait' ? '3/4' : '4/3');
 
@@ -330,27 +331,27 @@ export default function Photos() {
   const activeFrogState = getActiveFrogState();
 
   // Pure HTML5 2D Canvas Composite Generator (Single Merged High-Res PNG Photo)
-  const createSingleCompositePhoto = async (bgRaw, pos, frogState, sizePercent = stickerSize, mode = cameraOrientation, customDim = customBgDimensions) => {
+  const createSingleCompositePhoto = async (bgRaw, pos, frogState, sizePercent = stickerSize, mode = cameraOrientation, customDim = customBgDimensions, isFrameMode = isFrogFrame) => {
     const canvas = document.createElement('canvas');
     let targetW = mode === 'portrait' ? 900 : 1200;
     let targetH = mode === 'portrait' ? 1200 : 900;
 
     const loadImage = (src) => {
       return new Promise((resolve) => {
+        if (!src) return resolve(null);
         const img = new Image();
-        const cleanSrc = src.split('?')[0];
         
         // ONLY use crossOrigin if it is an absolute HTTP/HTTPS URL from a different domain!
-        if (cleanSrc.startsWith('http') && !cleanSrc.startsWith(window.location.origin)) {
+        if (typeof src === 'string' && src.startsWith('http') && !src.startsWith(window.location.origin)) {
           img.crossOrigin = 'Anonymous';
         }
         
         img.onload = () => resolve(img);
         img.onerror = (err) => {
-          console.error("Failed to load composite layer image:", cleanSrc, err);
+          console.error("Failed to load composite layer image:", src, err);
           resolve(null);
         };
-        img.src = cleanSrc;
+        img.src = src;
       });
     };
 
@@ -438,23 +439,7 @@ export default function Photos() {
     const ctx = canvas.getContext('2d');
 
     // 2. Determine Frog Base Image
-    const getFrogSrc = (p) => {
-      if (p.hunger < 30) return '/assets/frog_sad.png';
-      const version = p.frogVersion;
-      if (version === 'blue_shirt') return '/assets/frog_blue_shirt.png';
-      if (version === 'partyhat') return '/assets/frog_partyhat_base.png';
-      if (version === 'necklace') return '/assets/frog_necklace.png';
-      if (version === 'base') return '/assets/frog_dressup_base.png';
-
-      const items = p.equippedItems || (p.equippedItem ? [p.equippedItem] : []);
-      const itemNames = items.map(i => typeof i === 'object' ? i.name : i);
-      if (itemNames.includes('blue_shirt_frog')) return '/assets/frog_blue_shirt.png';
-      if (itemNames.includes('partyhat')) return '/assets/frog_partyhat_base.png';
-      if (itemNames.includes('necklace')) return '/assets/frog_necklace.png';
-      return '/assets/frog_dressup_base.png';
-    };
-
-    const frogSrc = getFrogSrc(frogState);
+    const frogSrc = getFrogBaseImage(frogState);
     const frogImg = await loadImage(frogSrc);
 
     if (frogImg) {
@@ -565,7 +550,7 @@ export default function Photos() {
       bgDataUrl = canvas.toDataURL('image/jpeg', 0.9);
     }
 
-    const compositeDataUrl = await createSingleCompositePhoto(bgDataUrl, stickerPos, activeFrogState, stickerSize, cameraOrientation, customBgDimensions);
+    const compositeDataUrl = await createSingleCompositePhoto(bgDataUrl, stickerPos, activeFrogState, stickerSize, cameraOrientation, customBgDimensions, isFrogFrame);
 
     const photoPayload = {
       id: Date.now().toString(),
