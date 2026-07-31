@@ -9,12 +9,18 @@ Earn coins and keep your frog happy by completing daily self-care tasks, trackin
 ## ✨ Key Features
 
 - **Virtual Pet Companion (Frogagotchi)**: Keep your frog well-fed, happy, and clean. Their mood reflects how well you check in and care for them.
+  - **Selectable Frog Versions**: Switch seamlessly between **Default**, **Party Hat**, **Necklace**, and **Blue Shirt** (Mugugins tie-dye shirt) frog versions!
+  - **Frame-Aligned Scale**: All 4 frog versions share normalized canvas frames and identical proportions across Pet Care, Dress Up, Photobooth, and all Mini-Games.
   - **Inactivity Decay System**: Stats decay by 15 points per 24 hours of inactivity.
-  - **Drained State View**: If stats reach 0, your frog turns into a transparent sad frowning plush sticker until you care for them!
+  - **Drained State View**: If stats reach 0, your frog turns into a sad frowning plush sticker until you care for them!
   - **Retro Coin Badge**: Displays coin balance in a Y2K gold pixel badge.
-  - **Interactive Action Buttons**: Feed, Play, Water, Medicine, and Adventure buttons (sized at a comfortable retro 1.25rem layout).
+  - **Interactive Action Buttons**: Feed, Play, Water, Medicine, and Adventure buttons with active toggle shading.
   - **Floating Pixel Heart Boost**: Sized 36px transparent pixel heart with a pink glowing drop-shadow floats over your frog's head every time you feed, play, or boost your pet's happiness!
   - **Dynamic Pet View Container Height**: Window container expands downwards automatically to fit longer dresses and outfits without distorting frog scale.
+
+- **Dress Up & Accessories**:
+  - **Custom Wardrobe**: Dress your frog in bows, sunglasses, dresses, shirts, and purses (scaled up by +10% for enhanced visibility).
+  - **Remove All Accessories**: One-click button in the Dress Up tab to quickly clear all equipped items.
 
 - **Background & Customization Options**:
   - **9 Retro Background Themes**: Switch between `Default`, `Bedtime`, `Beach`, `Jungle`, `Ocean`, `Purple Sky`, `Rainbow`, and `Seasonal` (dynamically selects *Halloween*, *Thanksgiving*, *Christmas*, or *Easter* based on the closest upcoming holiday!).
@@ -31,6 +37,8 @@ Earn coins and keep your frog happy by completing daily self-care tasks, trackin
   - **Pet Friendship Leveling System**: Level up your friendship status with your pet (Level 1: *New Friends* ➔ Level 2: *Good Pals* ➔ Level 3: *Best Friends* ➔ Level 4: *Soulmates* ➔ Level 5+: *Inseparable Partners*).
 
 - **Photobooth & Album**:
+  - **Frog Frame Mode**: Frame your photobooth pictures with 20 evenly-spaced frogs lining the screen border (6 top, 6 bottom, 4 left, 4 right) with custom headwear clearance!
+  - **Frog Version Choice**: Choose between `Current Outfit`, `Basic Frog`, `Party Hat`, `Necklace`, and `Blue Shirt` for single stickers and border frames.
   - **Live Camera & Dynamic Upload Sizing**: Take photos with your custom frog companion using your webcam or photo uploads with zero image cropping or cutoff.
   - **Portrait & Landscape Modes**: Framed camera orientation buttons for Macbook webcams.
   - **Interactive Placement Bounding Box**: Drag and enlarge frog stickers using a transparent dashed bounding box with corner resize handles (`↖`, `↗`, `↙`, `↘`).
@@ -40,7 +48,7 @@ Earn coins and keep your frog happy by completing daily self-care tasks, trackin
   - **Pond Sound Machine**: A retro pixel music player featuring a Web Audio API ambient sound synthesizer engine with **Gentle Rain**, **Pond & Frogs**, and **Lofi Beats**.
   - **Daily Self-Care Checklist**: Custom daily checklist with default tasks (*Drink water*, *Make bed*, *Step outside*, *Stretch*) and custom task creation. Completing tasks rewards **+10 Coins** and **+10 Happiness** per task, with automatic daily resets.
   - **Mood Tracker**: Log your daily emotions using cute frog mood badges. Save your mood directly to a new journal entry with one click!
-  - **Breathing Exercise & Meditation Timer**: Center yourself with guided mindfulness cycles to earn coins and happiness points.
+  - **Breathing Exercise & Meditation Timer**: Snug, edge-to-edge breathing window animation where your selected frog expands on inhale without excess surrounding whitespace.
 
 - **Secret Journal**: A safe space to write down your daily thoughts and reflections. 
   - **Guided Reflection Prompts**: Choose from guided prompts to kickstart your writing.

@@ -53,6 +53,36 @@ const AlbumPhotoCard = ({ photo, onClick }) => {
   );
 };
 
+const FRAME_POSITIONS = [
+  // Top row (6 frogs) - offset down slightly so bows & head accessories are never clipped
+  { x: 0, y: 2.5 },
+  { x: 16.66, y: 2.5 },
+  { x: 33.33, y: 2.5 },
+  { x: 50.00, y: 2.5 },
+  { x: 66.66, y: 2.5 },
+  { x: 83.33, y: 2.5 },
+
+  // Bottom row (6 frogs)
+  { x: 0, y: 81.5 },
+  { x: 16.66, y: 81.5 },
+  { x: 33.33, y: 81.5 },
+  { x: 50.00, y: 81.5 },
+  { x: 66.66, y: 81.5 },
+  { x: 83.33, y: 81.5 },
+
+  // Left column (4 interior frogs)
+  { x: 0, y: 18.3 },
+  { x: 0, y: 34.1 },
+  { x: 0, y: 49.9 },
+  { x: 0, y: 65.7 },
+
+  // Right column (4 interior frogs)
+  { x: 83.33, y: 18.3 },
+  { x: 83.33, y: 34.1 },
+  { x: 83.33, y: 49.9 },
+  { x: 83.33, y: 65.7 }
+];
+
 export default function Photos() {
   const { gameState, userId } = useGame();
   const [view, setView] = useState('camera'); // 'camera' or 'album'
@@ -68,6 +98,9 @@ export default function Photos() {
   const [cameraOrientation, setCameraOrientation] = useState('landscape'); // 'landscape' or 'portrait'
   const [cameraAspect, setCameraAspect] = useState(null);
   const [cameraError, setCameraError] = useState(null);
+  
+  // Photobooth Mode: Draggable single sticker or Frog Frame border mode
+  const [isFrogFrame, setIsFrogFrame] = useState(false);
   
   // Draggable & Resizable Sticker State (% position & size in container)
   const [stickerPos, setStickerPos] = useState({ x: 60, y: 60 });
@@ -279,14 +312,17 @@ export default function Photos() {
 
   // Compute active frog state for chosen sticker option
   const getActiveFrogState = () => {
+    if (stickerChoice === 'blue_shirt') {
+      return { ...gameState, frogVersion: 'blue_shirt', equippedItems: [], hunger: 100 };
+    }
     if (stickerChoice === 'partyhat') {
-      return { ...gameState, equippedItems: ['partyhat'], hunger: 100 };
+      return { ...gameState, frogVersion: 'partyhat', equippedItems: ['partyhat'], hunger: 100 };
     }
     if (stickerChoice === 'necklace') {
-      return { ...gameState, equippedItems: ['necklace'], hunger: 100 };
+      return { ...gameState, frogVersion: 'necklace', equippedItems: ['necklace'], hunger: 100 };
     }
     if (stickerChoice === 'basic') {
-      return { ...gameState, equippedItems: [], equippedItem: 'base', hunger: 100 };
+      return { ...gameState, frogVersion: 'base', equippedItems: [], equippedItem: 'base', hunger: 100 };
     }
     return gameState; // 'current' equipped frog
   };
@@ -404,9 +440,16 @@ export default function Photos() {
     // 2. Determine Frog Base Image
     const getFrogSrc = (p) => {
       if (p.hunger < 30) return '/assets/frog_sad.png';
+      const version = p.frogVersion;
+      if (version === 'blue_shirt') return '/assets/frog_blue_shirt.png';
+      if (version === 'partyhat') return '/assets/frog_partyhat_base.png';
+      if (version === 'necklace') return '/assets/frog_necklace.png';
+      if (version === 'base') return '/assets/frog_dressup_base.png';
+
       const items = p.equippedItems || (p.equippedItem ? [p.equippedItem] : []);
       const itemNames = items.map(i => typeof i === 'object' ? i.name : i);
-      if (itemNames.includes('partyhat')) return '/assets/mugugins_partyhat_sticker_v2.png';
+      if (itemNames.includes('blue_shirt_frog')) return '/assets/frog_blue_shirt.png';
+      if (itemNames.includes('partyhat')) return '/assets/frog_partyhat_base.png';
       if (itemNames.includes('necklace')) return '/assets/frog_necklace.png';
       return '/assets/frog_dressup_base.png';
     };
@@ -415,42 +458,51 @@ export default function Photos() {
     const frogImg = await loadImage(frogSrc);
 
     if (frogImg) {
-      const pPos = pos || { x: 60, y: 60 };
-      const destX = (pPos.x / 100) * canvas.width;
-      const destY = (pPos.y / 100) * canvas.height;
-      const sz = (sizePercent || stickerSize || 28) / 100;
-      const stickerBoxW = sz * canvas.width;
-      const stickerBoxH = sz * canvas.width;
+      const drawFrogInstance = async (pPos, sizePct) => {
+        const destX = (pPos.x / 100) * canvas.width;
+        const destY = (pPos.y / 100) * canvas.height;
+        const sz = sizePct / 100;
+        const stickerBoxW = sz * canvas.width;
+        const stickerBoxH = sz * canvas.width;
 
-      // Draw Frog Avatar Base with object-fit contain matching
-      drawContainImage(ctx, frogImg, destX, destY, stickerBoxW, stickerBoxH);
+        // Draw Frog Avatar Base with object-fit contain matching
+        drawContainImage(ctx, frogImg, destX, destY, stickerBoxW, stickerBoxH);
 
-      // Draw Clothing Accessories matching FrogAvatar percentage math
-      const items = frogState.equippedItems || (frogState.equippedItem && frogState.equippedItem !== 'base' ? [frogState.equippedItem] : []);
-      for (const item of items) {
-        const itemName = typeof item === 'object' ? item.name : item;
-        if (['partyhat', 'necklace', 'base'].includes(itemName)) continue;
+        // Draw Clothing Accessories matching FrogAvatar percentage math
+        const items = frogState.equippedItems || (frogState.equippedItem && frogState.equippedItem !== 'base' ? [frogState.equippedItem] : []);
+        for (const item of items) {
+          const itemName = typeof item === 'object' ? item.name : item;
+          if (['partyhat', 'necklace', 'base'].includes(itemName)) continue;
 
-        const clothImg = await loadImage(`/assets/clothing/${itemName}.png`);
-        if (clothImg) {
-          const hasCustomPos = typeof item === 'object' && item.left && item.top;
-          const leftPercent = hasCustomPos ? (parseFloat(item.left) / 100) : 0.5;
-          const topPercent = hasCustomPos ? (parseFloat(item.top) / 100) : 0.5;
+          const clothImg = await loadImage(`/assets/clothing/${itemName}.png`);
+          if (clothImg) {
+            const hasCustomPos = typeof item === 'object' && item.left && item.top;
+            const leftPercent = hasCustomPos ? (parseFloat(item.left) / 100) : 0.5;
+            const topPercent = hasCustomPos ? (parseFloat(item.top) / 100) : 0.5;
 
-          const centerX = destX + leftPercent * stickerBoxW;
-          const centerY = destY + topPercent * stickerBoxH;
+            const centerX = destX + leftPercent * stickerBoxW;
+            const centerY = destY + topPercent * stickerBoxH;
 
-          let percentW = 0.666;
-          if (itemName === 'pink_dress') percentW = 1.266;
-          if (itemName === 'blue_dress') percentW = 1.466;
-          if (itemName === 'frog_shirt') percentW = 0.866;
-          if (itemName === 'pink_sunglasses') percentW = 0.40;
-          if (['iridescent_bow', 'holographic_handbag', 'pink_heart_purse'].includes(itemName)) percentW = 0.30;
+            let percentW = 0.666;
+            if (itemName === 'pink_dress') percentW = 1.393;
+            if (itemName === 'blue_dress') percentW = 1.613;
+            if (itemName === 'frog_shirt') percentW = 0.866;
+            if (itemName === 'pink_sunglasses') percentW = 0.44;
+            if (['iridescent_bow', 'holographic_handbag', 'pink_heart_purse'].includes(itemName)) percentW = 0.33;
 
-          const clothW = percentW * stickerBoxW;
-          const clothH = (clothImg.height / clothImg.width) * clothW;
-          ctx.drawImage(clothImg, centerX - clothW / 2, centerY - clothH / 2, clothW, clothH);
+            const clothW = percentW * stickerBoxW;
+            const clothH = (clothImg.height / clothImg.width) * clothW;
+            ctx.drawImage(clothImg, centerX - clothW / 2, centerY - clothH / 2, clothW, clothH);
+          }
         }
+      };
+
+      if (isFrameMode) {
+        for (const posItem of FRAME_POSITIONS) {
+          await drawFrogInstance(posItem, 16.66);
+        }
+      } else {
+        await drawFrogInstance(pos || { x: 60, y: 60 }, sizePercent || stickerSize || 28);
       }
     }
 
@@ -813,153 +865,174 @@ async function triggerDirectDownload(dataUrl, photoId) {
               />
             ) : null}
             
-            {/* Draggable & Resizable Frog Sticker Overlay with Transparent Placement Box */}
-            <div 
-              onPointerDown={handleStickerPointerDown}
-              onTouchStart={handleStickerPointerDown}
-              title="Drag inside to move, drag corner handles to enlarge/resize!"
-              style={{ 
-                position: 'absolute', 
-                top: `${stickerPos.y}%`, 
-                left: `${stickerPos.x}%`,
-                width: `${stickerSize}%`,
-                aspectRatio: '1/1',
-                zIndex: 20,
-                cursor: isDragging ? 'grabbing' : 'grab',
-                border: '2px dashed rgba(255, 105, 180, 0.85)',
-                backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                borderRadius: '10px',
-                boxSizing: 'border-box',
-                boxShadow: '0 0 8px rgba(0,0,0,0.15)',
-                transition: isDragging || isResizing ? 'none' : 'all 0.1s ease'
-              }}
-            >
-              <FrogAvatar gameState={activeFrogState} />
-              
-              {/* Corner Handle: Top-Left Resize */}
+            {/* Draggable & Resizable Frog Sticker Overlay OR Frog Frame Border Overlay */}
+            {isFrogFrame ? (
+              <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 20, overflow: 'visible' }}>
+                {FRAME_POSITIONS.map((pos, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      position: 'absolute',
+                      top: `${pos.y}%`,
+                      left: `${pos.x}%`,
+                      width: '16.66%',
+                      height: '16.66%',
+                      pointerEvents: 'none',
+                      overflow: 'visible'
+                    }}
+                  >
+                    <FrogAvatar gameState={activeFrogState} />
+                  </div>
+                ))}
+              </div>
+            ) : (
               <div 
-                onPointerDown={handleResizePointerDown}
-                onTouchStart={handleResizePointerDown}
-                title="Drag to resize frog"
-                style={{
-                  position: 'absolute',
-                  top: '-10px',
-                  left: '-10px',
-                  width: '20px',
-                  height: '20px',
+                onPointerDown={handleStickerPointerDown}
+                onTouchStart={handleStickerPointerDown}
+                title="Drag inside to move, drag corner handles to enlarge/resize!"
+                style={{ 
+                  position: 'absolute', 
+                  top: `${stickerPos.y}%`, 
+                  left: `${stickerPos.x}%`,
+                  width: `${stickerSize}%`,
+                  aspectRatio: '1/1',
+                  zIndex: 20,
+                  cursor: isDragging ? 'grabbing' : 'grab',
+                  border: '2px dashed rgba(255, 105, 180, 0.85)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                  borderRadius: '10px',
                   boxSizing: 'border-box',
-                  backgroundColor: 'var(--window-title-bg)',
-                  color: 'white',
-                  borderRadius: '5px',
-                  border: '2px solid white',
-                  boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
-                  cursor: 'nwse-resize',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justify: 'center',
-                  padding: 0,
-                  margin: 0,
-                  zIndex: 25
+                  boxShadow: '0 0 8px rgba(0,0,0,0.15)',
+                  transition: isDragging || isResizing ? 'none' : 'all 0.1s ease'
                 }}
               >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', margin: 'auto' }}>
-                  <path d="M3 3L9 9M3 6V3H6M6 9H9V6" />
-                </svg>
-              </div>
+                <FrogAvatar gameState={activeFrogState} />
+                
+                {/* Corner Handle: Top-Left Resize */}
+                <div 
+                  onPointerDown={handleResizePointerDown}
+                  onTouchStart={handleResizePointerDown}
+                  title="Drag to resize frog"
+                  style={{
+                    position: 'absolute',
+                    top: '-10px',
+                    left: '-10px',
+                    width: '20px',
+                    height: '20px',
+                    boxSizing: 'border-box',
+                    backgroundColor: 'var(--window-title-bg)',
+                    color: 'white',
+                    borderRadius: '5px',
+                    border: '2px solid white',
+                    boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+                    cursor: 'nwse-resize',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justify: 'center',
+                    padding: 0,
+                    margin: 0,
+                    zIndex: 25
+                  }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', margin: 'auto' }}>
+                    <path d="M3 3L9 9M3 6V3H6M6 9H9V6" />
+                  </svg>
+                </div>
 
-              {/* Corner Handle: Top-Right Resize */}
-              <div 
-                onPointerDown={handleResizePointerDown}
-                onTouchStart={handleResizePointerDown}
-                title="Drag to resize frog"
-                style={{
-                  position: 'absolute',
-                  top: '-10px',
-                  right: '-10px',
-                  width: '20px',
-                  height: '20px',
-                  boxSizing: 'border-box',
-                  backgroundColor: 'var(--window-title-bg)',
-                  color: 'white',
-                  borderRadius: '5px',
-                  border: '2px solid white',
-                  boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
-                  cursor: 'nesw-resize',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justify: 'center',
-                  padding: 0,
-                  margin: 0,
-                  zIndex: 25
-                }}
-              >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', margin: 'auto' }}>
-                  <path d="M9 3L3 9M6 3H9V6M3 6V9H6" />
-                </svg>
-              </div>
+                {/* Corner Handle: Top-Right Resize */}
+                <div 
+                  onPointerDown={handleResizePointerDown}
+                  onTouchStart={handleResizePointerDown}
+                  title="Drag to resize frog"
+                  style={{
+                    position: 'absolute',
+                    top: '-10px',
+                    right: '-10px',
+                    width: '20px',
+                    height: '20px',
+                    boxSizing: 'border-box',
+                    backgroundColor: 'var(--window-title-bg)',
+                    color: 'white',
+                    borderRadius: '5px',
+                    border: '2px solid white',
+                    boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+                    cursor: 'nesw-resize',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justify: 'center',
+                    padding: 0,
+                    margin: 0,
+                    zIndex: 25
+                  }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', margin: 'auto' }}>
+                    <path d="M9 3L3 9M6 3H9V6M3 6V9H6" />
+                  </svg>
+                </div>
 
-              {/* Corner Handle: Bottom-Left Resize */}
-              <div 
-                onPointerDown={handleResizePointerDown}
-                onTouchStart={handleResizePointerDown}
-                title="Drag to resize frog"
-                style={{
-                  position: 'absolute',
-                  bottom: '-10px',
-                  left: '-10px',
-                  width: '20px',
-                  height: '20px',
-                  boxSizing: 'border-box',
-                  backgroundColor: 'var(--window-title-bg)',
-                  color: 'white',
-                  borderRadius: '5px',
-                  border: '2px solid white',
-                  boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
-                  cursor: 'nesw-resize',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justify: 'center',
-                  padding: 0,
-                  margin: 0,
-                  zIndex: 25
-                }}
-              >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', margin: 'auto' }}>
-                  <path d="M9 3L3 9M6 3H9V6M3 6V9H6" />
-                </svg>
-              </div>
+                {/* Corner Handle: Bottom-Left Resize */}
+                <div 
+                  onPointerDown={handleResizePointerDown}
+                  onTouchStart={handleResizePointerDown}
+                  title="Drag to resize frog"
+                  style={{
+                    position: 'absolute',
+                    bottom: '-10px',
+                    left: '-10px',
+                    width: '20px',
+                    height: '20px',
+                    boxSizing: 'border-box',
+                    backgroundColor: 'var(--window-title-bg)',
+                    color: 'white',
+                    borderRadius: '5px',
+                    border: '2px solid white',
+                    boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+                    cursor: 'nesw-resize',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justify: 'center',
+                    padding: 0,
+                    margin: 0,
+                    zIndex: 25
+                  }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', margin: 'auto' }}>
+                    <path d="M9 3L3 9M6 3H9V6M3 6V9H6" />
+                  </svg>
+                </div>
 
-              {/* Corner Handle: Bottom-Right Resize */}
-              <div 
-                onPointerDown={handleResizePointerDown}
-                onTouchStart={handleResizePointerDown}
-                title="Drag to resize frog"
-                style={{
-                  position: 'absolute',
-                  bottom: '-10px',
-                  right: '-10px',
-                  width: '20px',
-                  height: '20px',
-                  boxSizing: 'border-box',
-                  backgroundColor: 'var(--window-title-bg)',
-                  color: 'white',
-                  borderRadius: '5px',
-                  border: '2px solid white',
-                  boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
-                  cursor: 'nwse-resize',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justify: 'center',
-                  padding: 0,
-                  margin: 0,
-                  zIndex: 25
-                }}
-              >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', margin: 'auto' }}>
-                  <path d="M3 3L9 9M3 6V3H6M6 9H9V6" />
-                </svg>
+                {/* Corner Handle: Bottom-Right Resize */}
+                <div 
+                  onPointerDown={handleResizePointerDown}
+                  onTouchStart={handleResizePointerDown}
+                  title="Drag to resize frog"
+                  style={{
+                    position: 'absolute',
+                    bottom: '-10px',
+                    right: '-10px',
+                    width: '20px',
+                    height: '20px',
+                    boxSizing: 'border-box',
+                    backgroundColor: 'var(--window-title-bg)',
+                    color: 'white',
+                    borderRadius: '5px',
+                    border: '2px solid white',
+                    boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+                    cursor: 'nwse-resize',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justify: 'center',
+                    padding: 0,
+                    margin: 0,
+                    zIndex: 25
+                  }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', margin: 'auto' }}>
+                    <path d="M3 3L9 9M3 6V3H6M6 9H9V6" />
+                  </svg>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Instant Photo Capture Preview Overlay Centered inside Viewport */}
             {capturedPreview && (
@@ -1060,37 +1133,70 @@ async function triggerDirectDownload(dataUrl, photoId) {
           <div style={{ marginTop: '0.75rem', width: '100%', maxWidth: '500px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
             
             {/* Camera Orientation Mode Toggles (Portrait vs Landscape) */}
-            {!customBg && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+              {!customBg && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>Orientation Mode:</span>
+                  <button
+                    className="btn"
+                    onClick={() => setCameraOrientation('landscape')}
+                    style={{
+                      fontSize: '0.8rem',
+                      padding: '0.25rem 0.7rem',
+                      backgroundColor: cameraOrientation === 'landscape' ? 'var(--window-title-bg)' : 'var(--button-bg)',
+                      color: cameraOrientation === 'landscape' ? 'var(--window-title-text)' : 'var(--text-primary)',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    Landscape
+                  </button>
+                  <button
+                    className="btn"
+                    onClick={() => setCameraOrientation('portrait')}
+                    style={{
+                      fontSize: '0.8rem',
+                      padding: '0.25rem 0.7rem',
+                      backgroundColor: cameraOrientation === 'portrait' ? 'var(--window-title-bg)' : 'var(--button-bg)',
+                      color: cameraOrientation === 'portrait' ? 'var(--window-title-text)' : 'var(--text-primary)',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    Portrait
+                  </button>
+                </div>
+              )}
+
+              {/* Photobooth Frame Mode Toggle (Single Sticker vs Frog Frame) */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>Orientation Mode:</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>Frame Mode:</span>
                 <button
                   className="btn"
-                  onClick={() => setCameraOrientation('landscape')}
+                  onClick={() => setIsFrogFrame(false)}
                   style={{
                     fontSize: '0.8rem',
                     padding: '0.25rem 0.7rem',
-                    backgroundColor: cameraOrientation === 'landscape' ? 'var(--window-title-bg)' : 'var(--button-bg)',
-                    color: cameraOrientation === 'landscape' ? 'var(--window-title-text)' : 'var(--text-primary)',
+                    backgroundColor: !isFrogFrame ? 'var(--window-title-bg)' : 'var(--button-bg)',
+                    color: !isFrogFrame ? 'var(--window-title-text)' : 'var(--text-primary)',
                     fontWeight: 'bold'
                   }}
                 >
-                  Landscape
+                  Single Sticker
                 </button>
                 <button
                   className="btn"
-                  onClick={() => setCameraOrientation('portrait')}
+                  onClick={() => setIsFrogFrame(true)}
                   style={{
                     fontSize: '0.8rem',
                     padding: '0.25rem 0.7rem',
-                    backgroundColor: cameraOrientation === 'portrait' ? 'var(--window-title-bg)' : 'var(--button-bg)',
-                    color: cameraOrientation === 'portrait' ? 'var(--window-title-text)' : 'var(--text-primary)',
+                    backgroundColor: isFrogFrame ? 'var(--window-title-bg)' : 'var(--button-bg)',
+                    color: isFrogFrame ? 'var(--window-title-text)' : 'var(--text-primary)',
                     fontWeight: 'bold'
                   }}
                 >
-                  Portrait
+                  Frog Frame
                 </button>
               </div>
-            )}
+            </div>
 
 
 
@@ -1103,10 +1209,32 @@ async function triggerDirectDownload(dataUrl, photoId) {
                   fontSize: '0.8rem',
                   padding: '0.25rem 0.65rem',
                   backgroundColor: stickerChoice === 'current' ? 'var(--window-title-bg)' : 'var(--button-bg)',
-                  color: stickerChoice === 'current' ? 'var(--window-title-text)' : 'var(--text-primary)'
+                  color: stickerChoice === 'current' ? 'var(--window-title-text)' : 'var(--text-primary)',
+                  borderTopColor: stickerChoice === 'current' ? 'var(--button-border-dark)' : 'var(--button-border-light)',
+                  borderLeftColor: stickerChoice === 'current' ? 'var(--button-border-dark)' : 'var(--button-border-light)',
+                  borderBottomColor: stickerChoice === 'current' ? 'var(--button-border-light)' : 'var(--button-border-dark)',
+                  borderRightColor: stickerChoice === 'current' ? 'var(--button-border-light)' : 'var(--button-border-dark)',
+                  boxShadow: stickerChoice === 'current' ? 'none' : '2px 2px 0px rgba(0,0,0,0.15)'
                 }}
               >
                 Current Outfit
+              </button>
+              <button
+                className="btn"
+                onClick={() => setStickerChoice('basic')}
+                style={{
+                  fontSize: '0.8rem',
+                  padding: '0.25rem 0.65rem',
+                  backgroundColor: stickerChoice === 'basic' ? 'var(--window-title-bg)' : 'var(--button-bg)',
+                  color: stickerChoice === 'basic' ? 'var(--window-title-text)' : 'var(--text-primary)',
+                  borderTopColor: stickerChoice === 'basic' ? 'var(--button-border-dark)' : 'var(--button-border-light)',
+                  borderLeftColor: stickerChoice === 'basic' ? 'var(--button-border-dark)' : 'var(--button-border-light)',
+                  borderBottomColor: stickerChoice === 'basic' ? 'var(--button-border-light)' : 'var(--button-border-dark)',
+                  borderRightColor: stickerChoice === 'basic' ? 'var(--button-border-light)' : 'var(--button-border-dark)',
+                  boxShadow: stickerChoice === 'basic' ? 'none' : '2px 2px 0px rgba(0,0,0,0.15)'
+                }}
+              >
+                Basic Frog
               </button>
               <button
                 className="btn"
@@ -1115,7 +1243,12 @@ async function triggerDirectDownload(dataUrl, photoId) {
                   fontSize: '0.8rem',
                   padding: '0.25rem 0.65rem',
                   backgroundColor: stickerChoice === 'partyhat' ? 'var(--window-title-bg)' : 'var(--button-bg)',
-                  color: stickerChoice === 'partyhat' ? 'var(--window-title-text)' : 'var(--text-primary)'
+                  color: stickerChoice === 'partyhat' ? 'var(--window-title-text)' : 'var(--text-primary)',
+                  borderTopColor: stickerChoice === 'partyhat' ? 'var(--button-border-dark)' : 'var(--button-border-light)',
+                  borderLeftColor: stickerChoice === 'partyhat' ? 'var(--button-border-dark)' : 'var(--button-border-light)',
+                  borderBottomColor: stickerChoice === 'partyhat' ? 'var(--button-border-light)' : 'var(--button-border-dark)',
+                  borderRightColor: stickerChoice === 'partyhat' ? 'var(--button-border-light)' : 'var(--button-border-dark)',
+                  boxShadow: stickerChoice === 'partyhat' ? 'none' : '2px 2px 0px rgba(0,0,0,0.15)'
                 }}
               >
                 Party Hat
@@ -1127,22 +1260,32 @@ async function triggerDirectDownload(dataUrl, photoId) {
                   fontSize: '0.8rem',
                   padding: '0.25rem 0.65rem',
                   backgroundColor: stickerChoice === 'necklace' ? 'var(--window-title-bg)' : 'var(--button-bg)',
-                  color: stickerChoice === 'necklace' ? 'var(--window-title-text)' : 'var(--text-primary)'
+                  color: stickerChoice === 'necklace' ? 'var(--window-title-text)' : 'var(--text-primary)',
+                  borderTopColor: stickerChoice === 'necklace' ? 'var(--button-border-dark)' : 'var(--button-border-light)',
+                  borderLeftColor: stickerChoice === 'necklace' ? 'var(--button-border-dark)' : 'var(--button-border-light)',
+                  borderBottomColor: stickerChoice === 'necklace' ? 'var(--button-border-light)' : 'var(--button-border-dark)',
+                  borderRightColor: stickerChoice === 'necklace' ? 'var(--button-border-light)' : 'var(--button-border-dark)',
+                  boxShadow: stickerChoice === 'necklace' ? 'none' : '2px 2px 0px rgba(0,0,0,0.15)'
                 }}
               >
                 Necklace
               </button>
               <button
                 className="btn"
-                onClick={() => setStickerChoice('basic')}
+                onClick={() => setStickerChoice('blue_shirt')}
                 style={{
                   fontSize: '0.8rem',
                   padding: '0.25rem 0.65rem',
-                  backgroundColor: stickerChoice === 'basic' ? 'var(--window-title-bg)' : 'var(--button-bg)',
-                  color: stickerChoice === 'basic' ? 'var(--window-title-text)' : 'var(--text-primary)'
+                  backgroundColor: stickerChoice === 'blue_shirt' ? 'var(--window-title-bg)' : 'var(--button-bg)',
+                  color: stickerChoice === 'blue_shirt' ? 'var(--window-title-text)' : 'var(--text-primary)',
+                  borderTopColor: stickerChoice === 'blue_shirt' ? 'var(--button-border-dark)' : 'var(--button-border-light)',
+                  borderLeftColor: stickerChoice === 'blue_shirt' ? 'var(--button-border-dark)' : 'var(--button-border-light)',
+                  borderBottomColor: stickerChoice === 'blue_shirt' ? 'var(--button-border-light)' : 'var(--button-border-dark)',
+                  borderRightColor: stickerChoice === 'blue_shirt' ? 'var(--button-border-light)' : 'var(--button-border-dark)',
+                  boxShadow: stickerChoice === 'blue_shirt' ? 'none' : '2px 2px 0px rgba(0,0,0,0.15)'
                 }}
               >
-                Basic Frog
+                Blue Shirt
               </button>
             </div>
           </div>

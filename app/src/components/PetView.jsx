@@ -1,5 +1,6 @@
 import React from 'react';
 import { useGame } from '../context/GameContext';
+import { FROG_VERSIONS } from '../utils/frogAssets';
 
 import FrogAvatar from './FrogAvatar';
 
@@ -199,11 +200,31 @@ export default function PetView() {
       </div>
 
       <div style={{ marginTop: '0.5rem' }}>
-        <p style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--text-color)' }}>Frog Version:</p>
+        <p style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Frog Version:</p>
         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <button onClick={() => setBaseFrog('base')} style={btnStyle}>Default</button>
-          <button onClick={() => setBaseFrog('partyhat')} style={btnStyle}>Party Hat</button>
-          <button onClick={() => setBaseFrog('necklace')} style={btnStyle}>Necklace</button>
+          {FROG_VERSIONS.map(ver => {
+            const isSelected = (gameState?.frogVersion || 'base') === ver.id;
+            return (
+              <button
+                key={ver.id}
+                className="btn"
+                onClick={() => updateGameState({ frogVersion: ver.id })}
+                style={{
+                  padding: '0.3rem 0.75rem',
+                  fontSize: '1.1rem',
+                  backgroundColor: isSelected ? 'var(--window-title-bg)' : 'var(--button-bg)',
+                  color: isSelected ? 'var(--window-title-text)' : 'var(--text-primary)',
+                  borderTopColor: isSelected ? 'var(--button-border-dark)' : 'var(--button-border-light)',
+                  borderLeftColor: isSelected ? 'var(--button-border-dark)' : 'var(--button-border-light)',
+                  borderBottomColor: isSelected ? 'var(--button-border-light)' : 'var(--button-border-dark)',
+                  borderRightColor: isSelected ? 'var(--button-border-light)' : 'var(--button-border-dark)',
+                  boxShadow: isSelected ? 'none' : '2px 2px 0px rgba(0,0,0,0.15)'
+                }}
+              >
+                {ver.name}
+              </button>
+            );
+          })}
         </div>
       </div>
 

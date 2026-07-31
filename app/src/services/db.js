@@ -39,7 +39,9 @@ export const getGameState = async (userId) => {
       friendshipLevel: 1,
       friendshipXP: 10,
       dailyMoodLogs: {},
+      frogVersion: 'blue_shirt',
       equippedItem: 'base',
+      equippedItems: [],
       unlockedItems: ['base']
     };
   }
@@ -68,6 +70,7 @@ export const getGameState = async (userId) => {
     friendshipLevel: 1,
     friendshipXP: 10,
     dailyMoodLogs: {},
+    frogVersion: 'blue_shirt',
     equippedItem: 'base',
     equippedItems: [],
     unlockedItems: ['base']

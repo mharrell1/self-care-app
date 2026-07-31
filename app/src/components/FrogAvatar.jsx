@@ -1,35 +1,30 @@
 import React from 'react';
+import { getFrogBaseImage } from '../utils/frogAssets';
 
 export default function FrogAvatar({ gameState }) {
   const isFullyDrained = (gameState.happiness ?? 50) <= 0 || (gameState.hunger ?? 50) <= 0 || (gameState.cleanliness ?? 50) <= 0;
 
   const getFrogImage = () => {
-    if (isFullyDrained) return '/assets/frog_drained_clean.png?v=20260723_1945';
-    if (gameState.hunger < 30) return '/assets/frog_sad.png';
-    const items = gameState.equippedItems || (gameState.equippedItem ? [gameState.equippedItem] : []);
-    const itemNames = items.filter(i => typeof i === 'string');
-    if (itemNames.includes('partyhat')) return '/assets/mugugins_partyhat_sticker_v2.png?v=20260722_15';
-    if (itemNames.includes('necklace')) return '/assets/frog_necklace.png?v=20260722_15';
-    return '/assets/frog_dressup_base.png';
+    return getFrogBaseImage(gameState);
   };
 
   const getClothingStyle = (item) => {
     const baseStyle = { position: 'absolute', pointerEvents: 'none', zIndex: 10, top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
     switch (item) {
       case 'iridescent_bow':
-        return { ...baseStyle, width: '30%' };
+        return { ...baseStyle, width: '33%' };
       case 'pink_dress':
-        return { ...baseStyle, width: '126.6%' };
+        return { ...baseStyle, width: '139.3%' };
       case 'blue_dress':
-        return { ...baseStyle, width: '146.6%' };
+        return { ...baseStyle, width: '161.3%' };
       case 'frog_shirt':
         return { ...baseStyle, width: '86.6%' };
       case 'holographic_handbag':
-        return { ...baseStyle, width: '30%' };
+        return { ...baseStyle, width: '33%' };
       case 'pink_heart_purse':
-        return { ...baseStyle, width: '30%' };
+        return { ...baseStyle, width: '33%' };
       case 'pink_sunglasses':
-        return { ...baseStyle, width: '40%' };
+        return { ...baseStyle, width: '44%' };
       default:
         return { ...baseStyle, width: '66.6%' };
     }

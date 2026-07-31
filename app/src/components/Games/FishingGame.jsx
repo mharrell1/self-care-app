@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useGame } from '../../context/GameContext';
+import { getFrogTransparentImage } from '../../utils/frogAssets';
 
 export default function FishingGame({ onExit }) {
   const { gameState, updateGameState } = useGame();
@@ -144,7 +145,7 @@ export default function FishingGame({ onExit }) {
         {/* Frog */}
         {phase !== 'won' && phase !== 'lost' && (
           <img 
-            src="/assets/frog_naked_transparent.png" 
+            src={getFrogTransparentImage(gameState)} 
             alt="Frog" 
             style={{ 
               position: 'absolute', 
@@ -238,7 +239,7 @@ export default function FishingGame({ onExit }) {
                   </p>
                 </div>
                 <div style={{ position: 'relative', display: 'inline-block', marginTop: '0.5rem' }}>
-                  <img src="/assets/frog_naked_transparent.png" alt="Happy Frog" style={{ width: '160px' }} />
+                  <img src={getFrogTransparentImage(gameState)} alt="Happy Frog" style={{ width: '160px' }} />
                   {/* Position the fish on top of its lap */}
                   <img src={`/assets/fishing/fish_${catchType}.png`} alt="Caught Fish" style={{ position: 'absolute', bottom: '15%', left: '50%', transform: 'translate(-50%, 0)', width: '70px' }} />
                 </div>

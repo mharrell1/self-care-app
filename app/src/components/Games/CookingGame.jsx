@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useGame } from '../../context/GameContext';
+import { getFrogTransparentImage } from '../../utils/frogAssets';
 
 export default function CookingGame({ onExit }) {
   const { gameState, updateGameState } = useGame();
@@ -345,7 +346,7 @@ export default function CookingGame({ onExit }) {
                 </div>
                 <br />
                 <div style={{ position: 'relative', display: 'inline-block', marginTop: '1rem' }}>
-                  <img src="/assets/frog_naked_transparent.png" alt="Happy Frog" style={{ width: '200px' }} />
+                  <img src={getFrogTransparentImage(gameState)} alt="Happy Frog" style={{ width: '200px' }} />
                   {/* Position the food on top in the middle */}
                   <img src="/assets/cooking/unknown_1.png" alt="Meal" style={{ position: 'absolute', bottom: '15%', left: '50%', transform: 'translate(-50%, 0)', width: '130px' }} />
                 </div>

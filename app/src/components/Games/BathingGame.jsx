@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useGame } from '../../context/GameContext';
+import { getFrogTransparentImage } from '../../utils/frogAssets';
 
 export default function BathingGame({ onExit }) {
   const { gameState, updateGameState } = useGame();
@@ -13,8 +14,8 @@ export default function BathingGame({ onExit }) {
   const [dirtSpots, setDirtSpots] = useState([]);
   const [animating, setAnimating] = useState(false);
 
-  // Use the naked frog image
-  const frogImg = '/assets/frog_naked_white_bg.jpeg';
+  // Use the transparent frog image
+  const frogImg = getFrogTransparentImage(gameState);
 
   useEffect(() => {
     // Generate random dirt spots for phase 0
@@ -97,7 +98,7 @@ export default function BathingGame({ onExit }) {
 
         {/* Frog */}
         <img 
-          src={'/assets/frog_naked_transparent.png'} 
+          src={getFrogTransparentImage(gameState)} 
           alt="Frog" 
           style={{ 
             position: 'absolute', 

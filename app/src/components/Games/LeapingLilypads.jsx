@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useGame } from '../../context/GameContext';
+import { getFrogTransparentImage } from '../../utils/frogAssets';
 
 const GRAVITY = 0.5;
 const MAX_POWER = 16;
@@ -255,7 +256,7 @@ export default function LeapingLilypads({ onExit }) {
               transform: 'translate(-50%, -55%)',
               zIndex: 10
             }}>
-              <img src="/assets/frog_naked_transparent.png" alt="Frog" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              <img src={getFrogTransparentImage(gameState)} alt="Frog" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
               
               {/* Aim Indicator Arrow */}
               {frog.isGrounded && isPlaying && (

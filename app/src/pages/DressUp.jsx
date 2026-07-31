@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useGame } from '../context/GameContext';
+import { FROG_VERSIONS, getFrogBaseImage } from '../utils/frogAssets';
 
 export default function DressUp() {
   const { gameState, updateGameState } = useGame();
@@ -25,12 +26,7 @@ export default function DressUp() {
   };
 
   const getFrogImage = () => {
-    if (gameState.hunger < 30) return '/assets/frog_sad.png';
-    const items = gameState.equippedItems || (gameState.equippedItem ? [gameState.equippedItem] : []);
-    const itemNames = items.map(i => typeof i === 'object' ? i.name : i);
-    if (itemNames.includes('partyhat')) return '/assets/frog_partyhat.png';
-    if (itemNames.includes('necklace')) return '/assets/frog_necklace.png';
-    return '/assets/frog_dressup_base.png';
+    return getFrogBaseImage(gameState);
   };
 
   const handlePointerDown = (e, item) => {
@@ -85,13 +81,13 @@ export default function DressUp() {
 
   const getShelfSize = (item) => {
     switch (item) {
-      case 'blue_dress': return '120px';
-      case 'pink_dress': return '90px';
+      case 'blue_dress': return '132px';
+      case 'pink_dress': return '99px';
       case 'frog_shirt': return '80px';
-      case 'holographic_handbag': return '60px';
-      case 'pink_heart_purse': return '60px';
-      case 'pink_sunglasses': return '60px';
-      case 'iridescent_bow': return '50px';
+      case 'holographic_handbag': return '66px';
+      case 'pink_heart_purse': return '66px';
+      case 'pink_sunglasses': return '66px';
+      case 'iridescent_bow': return '55px';
       default: return '60px';
     }
   };
@@ -99,34 +95,92 @@ export default function DressUp() {
   const getClothingStyle = (item) => {
     const baseStyle = { position: 'absolute', pointerEvents: 'none', zIndex: 10, top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
     switch (item) {
-      case 'iridescent_bow': return { ...baseStyle, width: '45px' };
-      case 'pink_dress': return { ...baseStyle, width: '190px' };
-      case 'blue_dress': return { ...baseStyle, width: '220px' };
+      case 'iridescent_bow': return { ...baseStyle, width: '50px' };
+      case 'pink_dress': return { ...baseStyle, width: '209px' };
+      case 'blue_dress': return { ...baseStyle, width: '242px' };
       case 'frog_shirt': return { ...baseStyle, width: '130px' };
-      case 'holographic_handbag': return { ...baseStyle, width: '45px' };
-      case 'pink_heart_purse': return { ...baseStyle, width: '45px' };
-      case 'pink_sunglasses': return { ...baseStyle, width: '60px' };
+      case 'holographic_handbag': return { ...baseStyle, width: '50px' };
+      case 'pink_heart_purse': return { ...baseStyle, width: '50px' };
+      case 'pink_sunglasses': return { ...baseStyle, width: '66px' };
       default: return { ...baseStyle, width: '100px' };
     }
   };
 
   return (
-    <div 
-      ref={containerRef}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerLeave={handlePointerUp}
-      style={{ 
-        width: '100%', 
-        height: '400px',
-        minHeight: '400px',
-        backgroundImage: 'url(/assets/closet_bg.png)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        position: 'relative',
-        overflow: 'hidden'
-      }}
-    >
+    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      {/* Frog Version Picker Bar & Remove Accessories */}
+      <div 
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '0.5rem',
+          padding: '6px 4px',
+          backgroundColor: 'transparent',
+          flexWrap: 'wrap'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+            Frog Version:
+          </span>
+          {FROG_VERSIONS.map(ver => {
+            const isSelected = (gameState?.frogVersion || 'base') === ver.id;
+            return (
+              <button
+                key={ver.id}
+                className="btn"
+                onClick={() => updateGameState({ frogVersion: ver.id })}
+                style={{
+                  padding: '0.3rem 0.75rem',
+                  fontSize: '1.1rem',
+                  backgroundColor: isSelected ? 'var(--window-title-bg)' : 'var(--button-bg)',
+                  color: isSelected ? 'var(--window-title-text)' : 'var(--text-primary)',
+                  borderTopColor: isSelected ? 'var(--button-border-dark)' : 'var(--button-border-light)',
+                  borderLeftColor: isSelected ? 'var(--button-border-dark)' : 'var(--button-border-light)',
+                  borderBottomColor: isSelected ? 'var(--button-border-light)' : 'var(--button-border-dark)',
+                  borderRightColor: isSelected ? 'var(--button-border-light)' : 'var(--button-border-dark)',
+                  boxShadow: isSelected ? 'none' : '2px 2px 0px rgba(0,0,0,0.15)'
+                }}
+              >
+                {ver.name}
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          className="btn"
+          onClick={() => updateGameState({ equippedItems: [], equippedItem: 'base' })}
+          title="Remove all equipped accessories"
+          style={{
+            padding: '0.3rem 0.75rem',
+            fontSize: '1.1rem',
+            backgroundColor: 'var(--button-bg)',
+            color: 'var(--text-primary)'
+          }}
+        >
+          Remove All Accessories
+        </button>
+      </div>
+
+      <div 
+        ref={containerRef}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerUp}
+        style={{ 
+          width: '100%', 
+          height: '400px',
+          minHeight: '400px',
+          backgroundImage: 'url(/assets/closet_bg.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          position: 'relative',
+          overflow: 'hidden',
+          borderRadius: '12px'
+        }}
+      >
       <div 
         style={{
           position: 'absolute',
@@ -225,6 +279,7 @@ export default function DressUp() {
           </div>
         );
       })}
+    </div>
     </div>
   );
 }

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
 import { getMoodHistory, saveMood, saveJournalEntry } from '../services/db';
+import { getFrogTransparentImage, getFrogBaseImage } from '../utils/frogAssets';
 import { Play, Square } from 'lucide-react';
 
 const SOUND_TRACKS = {
@@ -325,7 +326,7 @@ export default function SelfCare() {
   useEffect(() => {
     let timeout;
     if (breathingPhase === 'inhale') {
-      setBreatheScale(1.35);
+      setBreatheScale(1.65);
       timeout = setTimeout(() => setBreathingPhase('hold'), 3000);
     } else if (breathingPhase === 'hold') {
       timeout = setTimeout(() => setBreathingPhase('exhale'), 2000);
@@ -744,22 +745,25 @@ export default function SelfCare() {
           transition: 'all 0.3s ease'
         }}>
           <div style={{
-            height: '110px',
+            height: '160px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             width: '100%',
-            overflow: 'visible'
+            overflow: 'hidden',
+            position: 'relative'
           }}>
             <img 
-              src="/assets/frog_naked_tight.png" 
+              src={getFrogBaseImage(gameState)} 
               alt="Breathing Frog" 
               style={{
-                width: '58px',
+                height: '95px',
+                width: 'auto',
                 display: 'block',
                 margin: '0 auto',
                 transition: 'transform 3s ease-in-out',
-                transform: `scale(${breatheScale})`
+                transform: `scale(${breatheScale})`,
+                transformOrigin: 'center center'
               }} 
             />
           </div>
